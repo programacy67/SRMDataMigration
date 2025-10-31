@@ -1,0 +1,171 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - SRMDataMigrationIgnite</title>
+    @* <link rel="stylesheet" href="~/lib/ignite-ui/css/structure/infragistics.css" />
+    <link rel="stylesheet" href="~/lib/ignite-ui/css/themes/infragistics/infragistics.theme.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/SRMDataMigrationIgnite.styles.css" asp-append-version="true" />
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-ui/jquery-ui.min.js"></script>
+
+    <!-- Ignite UI -->
+    <script src="~/lib/ignite-ui/js/infragistics.core.js"></script>
+    <script src="~/lib/ignite-ui/js/infragis tics.lob.js"></script>*@
+
+    <script src="https://igniteui.com/js/modernizr.min.js"></script>
+    <script src="https://code.jquery.com/jquery-1.9.1.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.10.3/jquery-ui.min.js"></script> 
+    @* <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script> *@
+    <script src="https://cdn-na.infragistics.com/igniteui/latest/js/infragistics.core.js"></script>
+    <script src="https://cdn-na.infragistics.com/igniteui/latest/js/infragistics.lob.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdn-na.infragistics.com/igniteui/latest/js/infragistics.excel-bundled.js"></script>
+    <script src="https://cdn-na.infragistics.com/igniteui/latest/js/modules/infragistics.gridexcelexporter.js"></script>
+    <script src="https://igniteui.com/js-data/nw-products"></script>
+    <link href="https://cdn-na.infragistics.com/igniteui/latest/css/themes/infragistics/infragistics.theme.css" rel="stylesheet" />
+    <link href="https://cdn-na.infragistics.com/igniteui/latest/css/structure/infragistics.css" rel="stylesheet" />
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+            <div class="container-fluid">
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">SRMDataMigrationIgnite</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <div class="container">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2025 - SRMDataMigrationIgnite - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+        </div>
+    </footer>
+    @await RenderSectionAsync("Scripts", required: false)
+
+    <style>
+        .igcombo-checkbox-toggle {
+            height: 16px;
+            width: 16px;
+            display: block; /* Make label a block element to control its width */
+            border-bottom: 1px solid #ccc; /* Add a bottom border */
+            padding-bottom: 5px; /* Add some spacing below the text */
+            margin-bottom: 10px;
+        }
+
+        .igcombo-disabled-span {
+            opacity: 0.5; 
+            cursor: not-allowed; 
+            pointer-events: none; 
+        }
+
+        input[type="checkbox"], label {
+            display: inline-block;
+        }
+
+        /* .ui-igcombo-listitem, .ui-igcombo-checkbox {
+            position:absolute !important;
+            border: 0px !important;
+        } */
+
+        .drag-handle {
+            cursor: move;
+            margin-right: 6px;
+            color: #999;
+        }
+
+        .ui-sortable-helper {
+            background: #f0f0f0;
+            opacity: 0.9;
+        }
+
+        .ui-state-highlight {
+            background: #dff0ff;
+            height: 1.8em;
+            line-height: 1.8em;
+        }
+
+
+
+
+
+
+
+        .custom-select {
+            position: relative;
+            width: 220px;
+            user-select: none;
+        }
+
+        /* The visible "select" box */
+        .select-display {
+            border: 1px solid #ccc;
+            padding: 8px;
+            background: #fff;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        /* Dropdown list */
+        .select-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            border: 1px solid #ccc;
+            background: #fff;
+            border-radius: 4px;
+            margin-top: 2px;
+            z-index: 999;
+            display: none;
+            max-height: 180px;
+            overflow-y: auto;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .select-dropdown li {
+            padding: 6px 10px;
+            border-bottom: 1px solid #eee;
+            cursor: grab;
+            background: #fff;
+        }
+
+        .select-dropdown li:last-child {
+            border-bottom: none;
+        }
+
+        .select-dropdown li:hover {
+            background: #f0f0f0;
+        }
+
+        .select-dropdown li.ui-sortable-helper {
+            background: #ffeaa7;
+        }
+    </style>
+</body>
+</html>
