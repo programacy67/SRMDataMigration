@@ -1,38 +1,55 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
+using DocumentFormat.OpenXml.Wordprocessing;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using SRMDataMigrationIgnite.Data;
 using SRMDataMigrationIgnite.Models;
 using SRMDataMigrationIgnite.Services.Interfaces;
 using SRMDataMigrationIgnite.Utils;
 using System.Data;
+using System.Threading;
 
 namespace SRMDataMigrationIgnite.Services.Repositories
 {
     public class DMExportViewEntitiesService : IDMExportViewEntitiesService
     {
         string tableName = "DMExportViewEntities";
-        private readonly ApplicationDbContext _context;
-        private readonly IConfiguration _config;
+        string tableNameEntityColumns = "DMExportViewEntityColumns";
+        private readonly IRepository _repository;
+        private readonly ILogger<DMExportViewEntitiesService> _logger;
 
-        public DMExportViewEntitiesService(ApplicationDbContext context, IConfiguration config)
+        public DMExportViewEntitiesService(IRepository repository, ILogger<DMExportViewEntitiesService> logger)
         {
-            _context = context;
-            _config = config;
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public DMExportViewEntities GetViewEntities(Guid viewId)
+        public async Task<DMExportViewEntities> GetViewEntities(Guid viewId, CancellationToken cancellationToken = default)
         {
-            return _context.dmExportViewEntities.Where(i => i.ID.Equals(viewId)).Where(i => !i.IsArchive).FirstOrDefault();
+            try
+            {
+                return await _repository.GetQueryable<DMExportViewEntities>()
+                    .FirstOrDefaultAsync(i => i.ID.Equals(viewId) && !i.IsArchive, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Exception: " + ex.Message);
+            }
         }
 
-        public async Task<DataTable> GetRiskCategory()
+        public async Task<List<ViewEntityCategoryData>> GetRiskCategory(CancellationToken cancellationToken = default)
         {
-            var dmColumnList = await _context.dmColumns.OrderBy(dm => dm.ColumnPosition).Where(dm => !dm.IsArchive)
-                               .Select(dm => new { dm.CategoryTitle, dm.Title, dm.IsMandatory }).ToListAsync();
-            return MiscellaneousService.ToDataTableFromEnum(dmColumnList);
+            return await _repository.GetQueryable<DMColumns>()
+                    .Where(dm => !dm.IsArchive).OrderBy(dm => dm.ColumnPosition)
+                    .Select(dm => new ViewEntityCategoryData
+                    {
+                        CategoryTitle = dm.CategoryTitle,
+                        Title = dm.Title,
+                        IsMandatory = dm.IsMandatory
+                    }).ToListAsync(cancellationToken);
         }
 
-        public async Task<DataTable> GetUserEntities(string viewName)
+        public async Task<DataTable> GetUserEntities(string viewName, Guid userId)
         {
             if (string.IsNullOrEmpty(viewName) || viewName == "Default")
                 viewName = string.Empty;
@@ -40,28 +57,21 @@ namespace SRMDataMigrationIgnite.Services.Repositories
             var dtUserColumns = new DataTable();
             try
             {
-                string sql = $@"SELECT {tableName}.ID, {tableName}.Title AS Views, DMExportViewEntityColumns.Title, DMExportViewEntityColumns.DisplayOrder 
+                string sql = $@"SELECT {tableName}.ID, {tableName}.Title AS Views, {tableNameEntityColumns}.Title, {tableNameEntityColumns}.DisplayOrder 
                     FROM {tableName} 
-                    INNER JOIN DMExportViewEntityColumns ON DMExportViewEntityColumns.DMExportViewEntityID = {tableName}.ID 
-                    AND DMExportViewEntityColumns.IsArchive = 0 
-                    WHERE {tableName}.UserID = N'{ApplicationDbContext.userId}' AND {tableName}.IsArchive = 0";
+                    INNER JOIN {tableNameEntityColumns} ON {tableNameEntityColumns}.DMExportViewEntityID = {tableName}.ID 
+                    AND {tableNameEntityColumns}.IsArchive = 0 
+                    WHERE {tableName}.UserID = N'{userId.ToString()}' AND {tableName}.IsArchive = 0";
+
                 if (!string.IsNullOrEmpty(viewName))
                     sql = $@"{sql} AND {tableName}.ID = N'{viewName}'";
 
                 if (string.IsNullOrEmpty(viewName))
-                    sql = $@"{sql} ORDER BY {tableName}.CreatedOn Desc, DMExportViewEntityColumns.DisplayOrder";
+                    sql = $@"{sql} ORDER BY {tableName}.CreatedOn Desc, {tableNameEntityColumns}.DisplayOrder";
                 else
-                    sql = $@"{sql} ORDER BY DMExportViewEntityColumns.DisplayOrder ";
+                    sql = $@"{sql} ORDER BY {tableNameEntityColumns}.DisplayOrder ";
 
-                using (var conn = new SqlConnection(_config.GetConnectionString("DefaultConnection")))
-                using (var cmd = new SqlCommand(sql, conn))
-                {
-                    await conn.OpenAsync();
-                    using (var reader = await cmd.ExecuteReaderAsync())
-                    {
-                        dtUserColumns.Load(reader); // Fill the DataTable with columns + rows
-                    }
-                }
+                dtUserColumns = await _repository.LoadDataTableAsync(sql);
             }
             catch (Exception ex)
             {
@@ -70,16 +80,43 @@ namespace SRMDataMigrationIgnite.Services.Repositories
             return dtUserColumns;
         }
 
-        public async Task AddView(DMExportViewEntities dmExport)
+        public async Task<List<ViewEntityData>> GetAllUserEntities(Guid userId, CancellationToken cancellationToken = default)
         {
-            _context.dmExportViewEntities.Add(dmExport);
-            await _context.SaveChangesAsync();
+            return await _repository.GetQueryable<DMExportViewEntities>()
+                    .Where(dm => !dm.IsArchive)
+                    .Select(dm => new ViewEntityData
+                    { 
+                        Title = dm.Title, 
+                        ID = dm.ID 
+                    }).ToListAsync(cancellationToken);
+        }
+
+        public async Task AddView(DMExportViewEntities newData)
+        {
+            await _repository.CreateAsync(newData);
+            await _repository.SaveChanges();
         }
 
         public async Task DeleteView(DMExportViewEntities dmExport)
         {
-            _context.dmExportViewEntities.Update(dmExport);
-            await _context.SaveChangesAsync();
+            await _repository.UpdateAsync(dmExport);
+            await _repository.SaveChanges();
         }
+
+
+        #region Helper Classes
+        public class ViewEntityData
+        {
+            public Guid ID { get; set; }
+            public string Title { get; set; }
+        }
+
+        public class ViewEntityCategoryData
+        {
+            public string CategoryTitle { get; set; }
+            public string Title { get; set; }
+            public bool IsMandatory { get; set; }
+        }
+        #endregion
     }
 }

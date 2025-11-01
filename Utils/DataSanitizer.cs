@@ -1,4 +1,6 @@
-﻿using System.Data;
+﻿using Microsoft.AspNetCore.Http.Json;
+using System.Data;
+using System.Text.Json;
 
 namespace SRMDataMigrationIgnite.Utils
 {
@@ -64,6 +66,15 @@ namespace SRMDataMigrationIgnite.Utils
                 sanitized.Add(cleanRow);
             }
             return sanitized;
+        }
+
+        public JsonSerializerOptions JsonOptions()
+        {
+            return new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = false
+            };
         }
     }
 }

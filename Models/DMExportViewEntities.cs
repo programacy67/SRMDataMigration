@@ -8,7 +8,7 @@ namespace SRMDataMigrationIgnite.Models
         public Guid ID { get; set; }
         public Guid UserID { get; set; }
         public string Title { get; set; }
-        public string Description { get; set; }
+        public string? Description { get; set; }
         public DateTime CreatedOn { get; set; }
         public DateTime? ModifiedOn { get; set; }
         public Guid CreatedBy { get; set; }

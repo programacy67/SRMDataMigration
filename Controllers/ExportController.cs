@@ -1,8 +1,10 @@
 ﻿using ClosedXML.Excel;
 using DocumentFormat.OpenXml.Drawing;
+using DocumentFormat.OpenXml.Drawing.Diagrams;
 using DocumentFormat.OpenXml.InkML;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Wordprocessing;
+using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.Mvc;
 using SRMDataMigrationIgnite.Data;
 using SRMDataMigrationIgnite.Models;
@@ -12,6 +14,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Linq;
 using System.Text.Json;
+using static SRMDataMigrationIgnite.Services.Repositories.DMExportViewEntitiesService;
 
 namespace SRMDataMigrationIgnite.Controllers
 {
@@ -48,57 +51,56 @@ namespace SRMDataMigrationIgnite.Controllers
             
             if (string.IsNullOrEmpty(viewName)) viewName = "Default";
 
-            var jsonOptions = new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                WriteIndented = false
-            };
-
             try
-            {                
-                Task<DataTable> dtTask = _iRiskRegistersService.GetAllRiskRegisters();
-                DataTable dt = await dtTask;
-
-                Task<DataTable> dtRiskCategory = _iDMExportViewEntitiesService.GetRiskCategory();
-                DataTable dtCategory = await dtRiskCategory;
+            {   
+                DataTable dt = await _iRiskRegistersService.GetAllRiskRegisters(ApplicationDbContext.projectId);
+                List<ViewEntityCategoryData> dtCategory = await _iDMExportViewEntitiesService.GetRiskCategory(ApplicationDbContext.cancellationToken);
 
                 //Get all Risk Identification
-                DataRow[] filteredRows = dtCategory.Select("CategoryTitle = 'Risk Identification'");
-                DataTable dtIdentificationCategory = filteredRows.Length > 0 ? filteredRows.CopyToDataTable() : new DataTable();
+                List<ViewEntityCategoryData> dtIdentificationCategory = (from dtc in dtCategory where dtc.CategoryTitle.Equals("Risk Identification") select dtc).ToList();
+                //DataRow[] filteredRows = dtCategory.Where(i => i.CategoryTitle.Equals("Risk Identification").ToList();
+                //DataTable dtIdentificationCategory = filteredRows.Length > 0 ? filteredRows.CopyToDataTable() : new DataTable();
 
                 //Get all Risk Source
-                filteredRows = dtCategory.Select("CategoryTitle = 'Risk Source'");
-                DataTable dtSourceCategory = filteredRows.Length > 0 ? filteredRows.CopyToDataTable() : new DataTable();
+                List<ViewEntityCategoryData> dtSourceCategory = (from dtc in dtCategory where dtc.CategoryTitle.Equals("Risk Source") select dtc).ToList();
 
                 //Get all Risk Actions
-                filteredRows = dtCategory.Select("CategoryTitle = 'Risk Actions'");
-                DataTable dtActionsCategory = filteredRows.Length > 0 ? filteredRows.CopyToDataTable() : new DataTable();
+                List<ViewEntityCategoryData> dtActionsCategory = (from dtc in dtCategory where dtc.CategoryTitle.Equals("Risk Actions") select dtc).ToList();
 
                 //Get all Risk Controls
-                filteredRows = dtCategory.Select("CategoryTitle = 'Risk Controls'");
-                DataTable dtControlsCategory = filteredRows.Length > 0 ? filteredRows.CopyToDataTable() : new DataTable();
+                List<ViewEntityCategoryData> dtControlsCategory = (from dtc in dtCategory where dtc.CategoryTitle.Equals("Risk Controls") select dtc).ToList();
 
                 //Get all Risk Impact
-                filteredRows = dtCategory.Select("CategoryTitle = 'Risk Impact'");
-                DataTable dtImpactCategory = filteredRows.Length > 0 ? filteredRows.CopyToDataTable() : new DataTable();
+                List<ViewEntityCategoryData> dtImpactCategory = (from dtc in dtCategory where dtc.CategoryTitle.Equals("Risk Impact") select dtc).ToList();
 
                 //Get all saved columns if any for a particular UserId
                 ViewData["ViewName"] = viewName;
-                Task<DataTable> dtUserEntities = _iDMExportViewEntitiesService.GetUserEntities(viewName);
-                DataTable dtUserColumns = await dtUserEntities;
+                DataTable dtUserColumns = await _iDMExportViewEntitiesService.GetUserEntities(viewName, ApplicationDbContext.userId);
 
                 //Display the saved columns in its order
-                List<string?> columnsToKeep = new List<string?>();
+                List<string?> columnsToShow = new List<string?>();
                 List<string?> columnsToHide = new List<string?>();
+
+                List<ViewEntityData> columnsToView = await _iDMExportViewEntitiesService.GetAllUserEntities(ApplicationDbContext.userId, ApplicationDbContext.cancellationToken);
+                if (columnsToView?.Count > 0)
+                    columnsToView.Add(new ViewEntityData
+                    {
+                        Title = "Default",
+                        ID = new Guid()
+                    });
+                ViewData["ViewEntities"] = JsonSerializer.Serialize(columnsToView);
+
                 if (string.IsNullOrEmpty(viewName) || viewName == "Default")
                 {
-                    columnsToKeep = dtCategory.AsEnumerable()
-                                         .Select(row => row.Field<string>("Title"))
-                                         .Distinct().ToList();
-                    var ColToKeep = _sanitizer.CleanDataTable(dtCategory, "");
-                    ViewData["ColumnsToKeep"] = JsonSerializer.Serialize(ColToKeep, jsonOptions);
-                    ViewData["ColumnsToHide"] = JsonSerializer.Serialize(columnsToHide, jsonOptions);
-                    ViewData["ColumnsToView"] = JsonSerializer.Serialize(new List<string?>(), jsonOptions);
+                    //    columnsToShow = dtCategory.AsEnumerable()
+                    //                         .Select(row => row.Field<string>("Title"))
+                    //                         .Distinct().ToList();
+                    //    var ColToKeep = _sanitizer.CleanDataTable(dtCategory, "");
+                    //    ViewData["ColumnsToShow"] = JsonSerializer.Serialize(ColToKeep, _sanitizer.JsonOptions());
+
+                    columnsToShow = (from dtc in dtCategory select dtc.Title).Distinct().ToList();
+                    ViewData["ColumnsToShow"] = JsonSerializer.Serialize(columnsToShow);
+                    ViewData["ColumnsToHide"] = JsonSerializer.Serialize(columnsToHide, _sanitizer.JsonOptions());
                 }
                 if (dtUserColumns != null)
                 {
@@ -106,49 +108,29 @@ namespace SRMDataMigrationIgnite.Controllers
                     {
                         if (!string.IsNullOrEmpty(viewName) && viewName != "Default")
                         {
-                            columnsToKeep = dtUserColumns.AsEnumerable()
+                            columnsToShow = dtUserColumns.AsEnumerable()
                                                 .Select(row => row.Field<string>("Title"))
                                                 .Distinct().ToList();
-                            var ColToKeep = _sanitizer.CleanDataTable(dtCategory, "");
-                            ViewData["ColumnsToKeep"] = JsonSerializer.Serialize(ColToKeep, jsonOptions);
-                            //ViewData["ColumnsToKeep"] = columnsToKeep;
+                            ViewData["ColumnsToShow"] = JsonSerializer.Serialize(columnsToShow);
                         }
-                        var columnsToView = dtUserColumns.AsEnumerable()
-                                                            .Select(row => new
-                                                            {
-                                                                Views = row.Field<string>("Views"),
-                                                                ID = row.Field<Guid>("ID")
-                                                            })
-                                                            .Distinct().ToList();
-                        if (columnsToView?.Count > 0)
-                            columnsToView.Add(new { Views = "Default", ID = new Guid() });
-
-                        ViewData["ColumnsToView"] = JsonSerializer.Serialize(columnsToView, jsonOptions);
-                        dt.SetColumnsOrder(columnsToKeep.ToArray());
-                        columnsToHide = (from dc in dt.Columns.Cast<DataColumn>() where !columnsToKeep.Contains(dc.ColumnName) select (dc.ColumnName)).ToList();
-                        ViewData["ColumnsToHide"] = JsonSerializer.Serialize(columnsToHide, jsonOptions);
+                        
+                        dt.SetColumnsOrder(columnsToShow.ToArray());
+                        columnsToHide = (from dc in dt.Columns.Cast<DataColumn>() where !columnsToShow.Contains(dc.ColumnName) select (dc.ColumnName)).ToList();
+                        ViewData["ColumnsToHide"] = JsonSerializer.Serialize(columnsToHide, _sanitizer.JsonOptions());
                     }
                 }
 
                 var columns = MiscellaneousService.GetColumnDefinitions(dt);
                 var dataList = _sanitizer.CleanDataTable(dt, "");
-                ViewData["Columns"] = JsonSerializer.Serialize(columns, jsonOptions);
-                ViewData["Data"] = JsonSerializer.Serialize(dataList, jsonOptions);
+                ViewData["Columns"] = JsonSerializer.Serialize(columns, _sanitizer.JsonOptions());
+                ViewData["Data"] = JsonSerializer.Serialize(dataList, _sanitizer.JsonOptions());
 
-                var identificationCategory = dtIdentificationCategory.AsEnumerable().Select(row => new { Title = row["Title"], IsMandatory = row["IsMandatory"] }).ToList();
-                ViewData["IdentificationCategory"] = identificationCategory;
-
-                var sourceCategory = dtSourceCategory.AsEnumerable().Select(row => new { Title = row["Title"], IsMandatory = row["IsMandatory"] }).ToList();
-                ViewData["SourceCategory"] = sourceCategory;
-
-                var actionsCategory = dtActionsCategory.AsEnumerable().Select(row => new { Title = row["Title"], IsMandatory = row["IsMandatory"] }).ToList();
-                ViewData["ActionsCategory"] = actionsCategory;
-
-                var controlsCategory = dtControlsCategory.AsEnumerable().Select(row => new { Title = row["Title"], IsMandatory = row["IsMandatory"] }).ToList();
-                ViewData["ControlsCategory"] = controlsCategory;
-
-                var impactCategory = dtImpactCategory.AsEnumerable().Select(row => new { Title = row["Title"], IsMandatory = row["IsMandatory"] }).ToList();
-                ViewData["ImpactCategory"] = impactCategory;
+                //var identificationCategory = dtIdentificationCategory.AsEnumerable().Select(row => new { Title = row["Title"], IsMandatory = row["IsMandatory"] }).ToList();
+                ViewData["IdentificationCategory"] = dtIdentificationCategory;
+                ViewData["SourceCategory"] = dtSourceCategory;
+                ViewData["ActionsCategory"] = dtActionsCategory;
+                ViewData["ControlsCategory"] = dtControlsCategory;
+                ViewData["ImpactCategory"] = dtImpactCategory;
                 return View(dt);
             }
             catch (Exception ex)
@@ -246,7 +228,9 @@ namespace SRMDataMigrationIgnite.Controllers
             var user = ApplicationDbContext.userId;
             Guid dmExportGuid = Guid.NewGuid();
             Guid dmExportEntityGuid = new Guid();
-            DateTime dtNow = DateTime.Now;
+            DateTime dtNow = DateTime.UtcNow;
+            string viewsList = string.Empty;
+
             DMExportViewEntities dmExport = new DMExportViewEntities();
             dmExport.ID = dmExportGuid;
             dmExport.UserID = user;
@@ -274,14 +258,21 @@ namespace SRMDataMigrationIgnite.Controllers
 
             try
             {
-                _iDMExportViewEntitiesService.AddView(dmExport);
-                _iDMExportViewEntityColumnsService.AddEntityColumns(dmExportColumnsList);
+                await _iDMExportViewEntitiesService.AddView(dmExport);
+                await _iDMExportViewEntityColumnsService.AddEntityColumns(dmExportColumnsList);
+
+                // Get all views for this user
+                List<ViewEntityData> columnsToView = await _iDMExportViewEntitiesService.GetAllUserEntities(ApplicationDbContext.userId, ApplicationDbContext.cancellationToken);
+                if (columnsToView?.Count > 0)
+                    columnsToView.Add(new ViewEntityData { Title = "Default", ID = new Guid() });
+
+                viewsList = JsonSerializer.Serialize(columnsToView);
             }
             catch (Exception ex)
             {
                 throw new Exception(ex.Message);
             }
-            return Ok(new { message = "Saved" });
+            return Ok(new { message = "Saved", views = viewsList, newViewId = dmExportGuid.ToString() });
         }
 
         public async Task<IActionResult> EditSettings([FromBody] UserRequest payload)
@@ -289,7 +280,7 @@ namespace SRMDataMigrationIgnite.Controllers
             var user = ApplicationDbContext.userId;
             Guid dmExportGuid = new Guid(payload.Viewname);
             Guid dmExportEntityGuid = new Guid();
-            DateTime dtNow = DateTime.Now;
+            DateTime dtNow = DateTime.UtcNow;
             List<DMExportViewEntityColumns> dmExportColumnsList = new List<DMExportViewEntityColumns>();
             DMExportViewEntityColumns dmExportColumns = new DMExportViewEntityColumns();
             int i = 0;
@@ -310,8 +301,8 @@ namespace SRMDataMigrationIgnite.Controllers
 
             try
             {
-                _iDMExportViewEntityColumnsService.DeleteEntityColumns(dmExportGuid);
-                _iDMExportViewEntityColumnsService.AddEntityColumns(dmExportColumnsList);
+                await _iDMExportViewEntityColumnsService.DeleteEntityColumns(dmExportGuid, user);
+                await _iDMExportViewEntityColumnsService.AddEntityColumns(dmExportColumnsList);
 
             }
             catch (Exception ex)
@@ -324,9 +315,11 @@ namespace SRMDataMigrationIgnite.Controllers
         public async Task<IActionResult> DeleteSettings([FromBody] UserRequest payload)
         {
             var user = ApplicationDbContext.userId;
-            DateTime dtNow = DateTime.Now;
+            DateTime dtNow = DateTime.UtcNow;
+            string viewsList = string.Empty;
+
             Guid dmExportGuid = new Guid(payload.Viewname);
-            DMExportViewEntities dmExport = _iDMExportViewEntitiesService.GetViewEntities(dmExportGuid);
+            DMExportViewEntities dmExport = await _iDMExportViewEntitiesService.GetViewEntities(dmExportGuid, ApplicationDbContext.cancellationToken);
             if (dmExport != null)
             {
                 try
@@ -334,14 +327,21 @@ namespace SRMDataMigrationIgnite.Controllers
                     dmExport.IsArchive = true;
                     dmExport.ModifiedOn = dtNow;
                     dmExport.ModifiedBy = user;
-                    _iDMExportViewEntitiesService.DeleteView(dmExport);
+                    await _iDMExportViewEntitiesService.DeleteView(dmExport);
+
+                    // Get all views for this user
+                    List<ViewEntityData> columnsToView = await _iDMExportViewEntitiesService.GetAllUserEntities(ApplicationDbContext.userId, ApplicationDbContext.cancellationToken);
+                    if (columnsToView?.Count > 0)
+                        columnsToView.Add(new ViewEntityData { Title = "Default", ID = new Guid() });
+
+                    viewsList = JsonSerializer.Serialize(columnsToView);
                 }
                 catch (Exception ex)
                 {
                     throw new Exception(ex.Message);
                 }
             }
-            return Ok(new { message = "Deleted" });
+            return Ok(new { message = "Deleted", views = viewsList });
         }
 
         // Data Models

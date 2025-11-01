@@ -4,6 +4,6 @@ namespace SRMDataMigrationIgnite.Services.Interfaces
 {
     public interface IRiskRegistersService
     {
-        Task<DataTable> GetAllRiskRegisters();
+        Task<DataTable> GetAllRiskRegisters(Guid projectId);
     }
 }

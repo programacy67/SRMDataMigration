@@ -9,6 +9,7 @@ namespace SRMDataMigrationIgnite.Extensions
         public static IServiceCollection AddApplicationServices(this IServiceCollection services)
         {
             // Business layer
+            services.AddScoped<IRepository, Repository>();
             services.AddScoped<IRiskRegistersService, RiskRegistersService>();
             services.AddScoped<IDMExportViewEntitiesService, DMExportViewEntitiesService>();
             services.AddScoped<IDMExportViewEntityColumnsService, DMExportViewEntityColumnsService>();

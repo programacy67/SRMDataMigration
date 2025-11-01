@@ -8,16 +8,16 @@ namespace SRMDataMigrationIgnite.Services.Repositories
     public class RiskRegistersService : IRiskRegistersService
     {
         string tableName = "Risk";
-        private readonly ApplicationDbContext _context;
-        private readonly IConfiguration _config;
+        private readonly IRepository _repository;
+        private readonly ILogger<DMExportViewEntitiesService> _logger;
 
-        public RiskRegistersService(ApplicationDbContext context, IConfiguration config)
+        public RiskRegistersService(IRepository repository, ILogger<DMExportViewEntitiesService> logger)
         {
-            _context = context;
-            _config = config;
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public async Task<DataTable> GetAllRiskRegisters()
+        public async Task<DataTable> GetAllRiskRegisters(Guid projectId)
         {
             var dt = new DataTable();
             try
@@ -47,17 +47,9 @@ namespace SRMDataMigrationIgnite.Services.Repositories
                     FROM {tableName} 
                     INNER JOIN Project ON Project.ID = {tableName}.ProjectID 
                     LEFT JOIN RiskStatus ON {tableName}.RiskStatusID = RiskStatus.ID 
-                    WHERE Project.ID = N'{ApplicationDbContext.projectId}'";
-                
-                using (var conn = new SqlConnection(_config.GetConnectionString("DefaultConnection")))
-                using (var cmd = new SqlCommand(sql, conn))
-                {
-                    await conn.OpenAsync();
-                    using (var reader = await cmd.ExecuteReaderAsync())
-                    {
-                        dt.Load(reader); // Fill the DataTable with columns + rows
-                    }
-                }
+                    WHERE Project.ID = N'{projectId.ToString()}'";
+
+                dt = await _repository.LoadDataTableAsync(sql);
             }
             catch (Exception ex)
             {

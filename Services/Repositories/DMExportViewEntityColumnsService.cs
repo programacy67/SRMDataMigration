@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using SRMDataMigrationIgnite.Data;
 using SRMDataMigrationIgnite.Models;
 using SRMDataMigrationIgnite.Services.Interfaces;
@@ -10,33 +11,26 @@ namespace SRMDataMigrationIgnite.Services.Repositories
     public class DMExportViewEntityColumnsService : IDMExportViewEntityColumnsService
     {
         string tableName = "DMExportViewEntityColumns";
-        private readonly ApplicationDbContext _context;
-        private readonly IConfiguration _config;
+        private readonly IRepository _repository;
+        private readonly ILogger<DMExportViewEntitiesService> _logger;
 
-        public DMExportViewEntityColumnsService(ApplicationDbContext context, IConfiguration config)
+        public DMExportViewEntityColumnsService(IRepository repository, ILogger<DMExportViewEntitiesService> logger)
         {
-            _context = context;
-            _config = config;
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public List<DMExportViewEntityColumns> GetList(Guid viewId)
+        public async Task<List<DMExportViewEntityColumns>> GetList(Guid viewId)
         {
-            return _context.dmExportViewEntityColumns.Where(i => i.DMExportViewEntityID.Equals(viewId)).ToList();
+            return await _repository.GetListAsync<DMExportViewEntityColumns>(i => i.DMExportViewEntityID.Equals(viewId));
         }
 
         public async Task AddEntityColumns(List<DMExportViewEntityColumns> dmExportColumnsList)
         {
             try
             {
-                using var reader = new ObjectDataReader<DMExportViewEntityColumns>(dmExportColumnsList);
-                var connectionString = _config.GetConnectionString("DefaultConnection");
-                using var connection = new SqlConnection(connectionString);
-                await connection.OpenAsync();
-                using var bulkCopy = new SqlBulkCopy(connection)
-                {
-                    DestinationTableName = "DMExportViewEntityColumns"
-                };
-                await bulkCopy.WriteToServerAsync(reader);
+                await _repository.CreateRangeAsync(dmExportColumnsList);
+                await _repository.SaveChanges();
             }
             catch (Exception ex)
             {
@@ -44,21 +38,16 @@ namespace SRMDataMigrationIgnite.Services.Repositories
             }
         }
 
-        public async Task DeleteEntityColumns(Guid viewId)
+        public async Task DeleteEntityColumns(Guid viewId, Guid userid)
         {
             try
             {
-                Guid userid = ApplicationDbContext.userId;
-                DateTime dtNow = DateTime.Now;
-                string sql = $@"UPDATE {tableName} SET ModifiedBy = N'{userid}', ModifiedOn = N'{dtNow}', IsArchive = 1 
-                    WHERE DMExportViewEntityID = N'{viewId}' AND IsArchive = 0";
+                DateTime dtNow = DateTime.UtcNow;
+                string sql = $@"UPDATE {tableName} SET ModifiedBy = N'{userid.ToString()}', ModifiedOn = CONVERT (DATETIME, '{dtNow}', 105), IsArchive = 1 
+                    WHERE DMExportViewEntityID = N'{viewId.ToString()}' AND IsArchive = 0";
 
-                using (var conn = new SqlConnection(_config.GetConnectionString("DefaultConnection")))
-                using (var cmd = new SqlCommand(sql, conn))
-                {
-                    await conn.OpenAsync();
-                    cmd.ExecuteNonQuery();
-                }
+                await _repository.ExecuteSqlCommandAsync(sql);
+                await _repository.SaveChanges();
             }
             catch (Exception ex)
             {

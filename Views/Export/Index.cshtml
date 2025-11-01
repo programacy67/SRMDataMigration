@@ -3,9 +3,9 @@
     ViewData["Title"] = "Export Risks";
     var columnsJson = ViewData["Columns"];
     var dataJson = ViewData["Data"];
-    var ColumnsToKeep = ViewData["ColumnsToKeep"];
+    var ColumnsToShow = ViewData["ColumnsToShow"];
     var ColumnsToHide = ViewData["ColumnsToHide"];
-    var ColumnsToView = ViewData["ColumnsToView"];
+    var ColumnsToView = ViewData["ViewEntities"];
     var IdentificationCategory = ViewData["IdentificationCategory"];
     var SourceCategory = ViewData["SourceCategory"];
     var ActionsCategory = ViewData["ActionsCategory"] ;
@@ -46,7 +46,7 @@
     });
 
     $(function () {
-        var ColumnsToKeepInDropdown = @Html.Raw(ColumnsToKeep);        
+        var ColumnsToShowInDropdown = @Html.Raw(ColumnsToShow);        
         var ColumnsToViewInDropdown = @Html.Raw(ColumnsToView);
         var colsToHideStr = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ColumnsToHide));
 
@@ -54,8 +54,8 @@
         $("#sltView").igCombo({
             dataSource: ColumnsToViewInDropdown,
             width: "250px",
-            textKey: "views",
-            valueKey: "id",
+            textKey: "Title",
+            valueKey: "ID",
             filteringType: "local",
             filteringCondition: "contains",
             highlightMatchesMode: "contains",
@@ -70,19 +70,6 @@
                 if (viewname != "") {
                     $("#hfViewName").val(viewname);
                     $("#frmRiskRegisters").submit();
-                    // $.ajax({
-                    //     type: 'POST',
-                    //     url: '@Url.Action("Index", "Export")',
-                    //     contentType: 'application/json; charset=utf-8',
-                    //     data: JSON.stringify(payload),
-                    //     success: function(){
-                            
-                    //     },
-                    //     error: function(){
-                    //         alert('Error showing view');
-                    //     }
-                    // });
-                    // window.location = '?viewname=' + encodeURIComponent(viewname);
                 }
             }
         });
@@ -153,7 +140,7 @@
             },
             itemsRendered: function (evt, ui) {
                 disableMandatoryItems("#sltIdentification", true);
-                checkIdentificationColumnsToKeep();
+                checkIdentificationColumnsToShow();
                 ui.owner.element.find("input[type='text']").val('');
             },
             dropDownClosed: function (evt, ui) {
@@ -195,7 +182,7 @@
             }
         });
 
-        function checkIdentificationColumnsToKeep() {
+        function checkIdentificationColumnsToShow() {
             var IdentificationColumns = IdentificationCategory.map(i => i.Title);
             var gridColumns = JSON.parse(colsToHideStr);
             var comboColumns = IdentificationColumns.filter(i => !gridColumns.includes(i));
@@ -258,7 +245,7 @@
             },
             itemsRendered: function (evt, ui) {
                 disableMandatoryItems("#sltSource", false);
-                checkSourceColumnsToKeep();
+                checkSourceColumnsToShow();
                 ui.owner.element.find("input[type='text']").val('');
             },
             dropDownOpened: function (evt, ui) {
@@ -287,7 +274,7 @@
             showHideGridColumns("#sltSource");
         });
 
-        function checkSourceColumnsToKeep() {
+        function checkSourceColumnsToShow() {
             var SourceColumns = SourceCategory.map(i => i.Title);
             var gridColumns = JSON.parse(colsToHideStr);
             var comboColumns = SourceColumns.filter(i => !gridColumns.includes(i));
@@ -320,7 +307,7 @@
             },
             itemsRendered: function (evt, ui) {
                 disableMandatoryItems("#sltImpact", false);
-                checkImpactColumnsToKeep();
+                checkImpactColumnsToShow();
                 ui.owner.element.find("input[type='text']").val('');
             },
             dropDownOpened: function (evt, ui) {
@@ -349,7 +336,7 @@
             showHideGridColumns("#sltImpact");
         });
 
-        function checkImpactColumnsToKeep() {
+        function checkImpactColumnsToShow() {
             var ImpactColumns = ImpactCategory.map(i => i.Title);
             var gridColumns = JSON.parse(colsToHideStr);
             var comboColumns = ImpactColumns.filter(i => !gridColumns.includes(i));
@@ -382,7 +369,7 @@
             },
             itemsRendered: function (evt, ui) {
                 disableMandatoryItems("#sltActions", false);
-                checkActionsColumnsToKeep();
+                checkActionsColumnsToShow();
                 ui.owner.element.find("input[type='text']").val('');
             },
             dropDownOpened: function (evt, ui) {
@@ -411,7 +398,7 @@
             showHideGridColumns("#sltActions");
         });
 
-        function checkActionsColumnsToKeep() {
+        function checkActionsColumnsToShow() {
             var ActionsColumns = ActionsCategory.map(i => i.Title);
             var gridColumns = JSON.parse(colsToHideStr);
             var comboColumns = ActionsColumns.filter(i => !gridColumns.includes(i));
@@ -444,7 +431,7 @@
             },
             itemsRendered: function (evt, ui) {
                 disableMandatoryItems("#sltControls", false);
-                checkControlsColumnsToKeep();
+                checkControlsColumnsToShow();
                 ui.owner.element.find("input[type='text']").val('');
             },
             dropDownOpened: function (evt, ui) {
@@ -473,7 +460,7 @@
             showHideGridColumns("#sltControls");
         });
 
-        function checkControlsColumnsToKeep() {
+        function checkControlsColumnsToShow() {
             var ControlsColumns = ControlsCategory.map(i => i.Title);
             var gridColumns = JSON.parse(colsToHideStr);
             var comboColumns = ControlsColumns.filter(i => !gridColumns.includes(i));
@@ -665,12 +652,13 @@
             labelText: "Save/Edit View",
             width: "120px",
             click: function (e) {
+                e.preventDefault();
                 var txtviewname = $('#txtViewName').val();
                 var selectedItems = $('#sltView').igCombo("selectedItems");
                 var sltviewname = "";
                 if (selectedItems != null)
                     if (selectedItems.length > 0) 
-                        sltviewname = selectedItems[0].data.id;
+                        sltviewname = selectedItems[0].data.ID;
                 
                 if (sltviewname == "Default") sltviewname = null;
                 if (!sltviewname && !txtviewname) { 
@@ -691,7 +679,16 @@
                             url: '@Url.Action("SaveSettings", "Export")',
                             contentType: 'application/json; charset=utf-8',
                             data: JSON.stringify(payload),
-                            success: function(){
+                            success: function(response){
+                                $('#txtViewName').igTextEditor("value", "");
+                                $("#sltView").igCombo({
+                                    dataSource: JSON.parse(response.views),
+                                    textKey: "Title",
+                                    valueKey: "ID",
+                                    dataSourceType: "json"
+                                });
+                                $("#sltView").igCombo("dataBind");
+                                $("#sltView").igCombo("value", response.newViewId);
                                 alert('View saved');
                             },
                             error: function(){
@@ -705,7 +702,7 @@
 
                 if (sltviewname && !txtviewname) {
                     var data = $("#sltView").igCombo("dataForValue", sltviewname);
-                    if (confirm("Do you want to edit " + data.views + " view?")) {
+                    if (confirm("Do you want to edit " + data.Title + " view?")) {
                         var payload = {
                             viewname: sltviewname,
                             columns: selectedColumns
@@ -715,7 +712,7 @@
                             url: '@Url.Action("EditSettings", "Export")',
                             contentType: 'application/json; charset=utf-8',
                             data: JSON.stringify(payload),
-                            success: function(){
+                            success: function(response){
                                 alert('View updated');
                             },
                             error: function(){
@@ -740,11 +737,12 @@
             labelText: "Delete View",
             width: "120px",
             click: function (e) {
+                e.preventDefault();
                 var selectedItems = $('#sltView').igCombo("selectedItems");
                 var viewname = "";
                 if (selectedItems != null)
                     if (selectedItems.length > 0)
-                        viewname = selectedItems[0].data.id;
+                        viewname = selectedItems[0].data.ID;
 
                 if (!viewname) {
                   alert("Please select a viewname.");
@@ -752,7 +750,7 @@
                 }
                 else {
                     var data = $("#sltView").igCombo("dataForValue", viewname);
-                    if (confirm("Are you sure to delete " + data.views + " view?")) {
+                    if (confirm("Are you sure to delete " + data.Title + " view?")) {
                         var payload = {
                             viewname: viewname,
                         };
@@ -761,7 +759,15 @@
                             url: '@Url.Action("DeleteSettings", "Export")',
                             contentType: 'application/json; charset=utf-8',
                             data: JSON.stringify(payload),
-                            success: function(){
+                            success: function(response){
+                                $('#txtViewName').igTextEditor("value", "");
+                                $("#sltView").igCombo({
+                                    dataSource: JSON.parse(response.views),
+                                    textKey: "Title",
+                                    valueKey: "ID",
+                                    dataSourceType: "json"
+                                });
+                                $("#sltView").igCombo("dataBind");
                                 alert('View deleted');
                             },
                             error: function(){
@@ -781,6 +787,7 @@
             labelText: "Export To Excel",
             width: "120px",
             click: function (e) {
+                e.preventDefault();
                 var exp = new $.ig.GridExcelExporter();
                 exp.exportGrid($("#grid"), {
                     fileName: "Risks_" + getDate(),
