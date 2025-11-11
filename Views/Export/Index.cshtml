@@ -14,7 +14,7 @@
 }
 
 <form id="frmRiskRegisters" asp-action="Index" method="post">
-    <h3>Risks</h3>
+    <h2>Risks - Export</h2>
 
     <div>
         <div id="sltIdentification"></div>
@@ -29,9 +29,9 @@
         <input type="hidden" id="hfViewName" name="hfViewName" />
         <input id="txtViewName" type="text" name="viewname" />
 
-        <button id="btnSave">Save/Edit</button>
-        <button id="btnDelete">Delete</button>
-        <button id="btnExportExcel">Export</button>
+        <button id="btnSave" class="btn-Save">Save/Edit View</button>
+        <button id="btnDelete" class="btn-Delete">Delete View</button>
+        <button id="btnExportExcel" class="btn-Save">Export To Excel</button>
     </div>
 
     <table id="grid"></table>
@@ -116,7 +116,10 @@
         var ActionsCategory = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ActionsCategory));
         var ControlsCategory = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ControlsCategory));
         var mandatoryColumns = IdentificationCategory.filter(i => i.IsMandatory === true).map(i => i.Title);
-
+        
+        let selectedValuesIdentification = [];
+        let isIdentificationChanged = false;
+        let suppressIdentificationSelectionChange = false;
         //Populate Identification Combobox
         $("#sltIdentification").igCombo({
             dataSource: IdentificationCategory,
@@ -130,6 +133,9 @@
             dropDownOnFocus: true,
             enableClearButton: false,
             closeDropDownOnBlur: true,
+            autoComplete: false,
+            autoSelectFirstMatch: false,
+            allowCustomValue: true,
             locale: {
                 placeHolder: "Select Identification"
             },
@@ -147,38 +153,45 @@
                 ui.owner.element.find("input[type='text']").val('');
             },
             dropDownOpened: function (evt, ui) {
+                if (isIdentificationChanged)
+                    $("#sltIdentification").igCombo("value", selectedValuesIdentification);
+                else
+                    checkIdentificationColumnsToShow();
+
                 ui.owner.element.find("input[type='text']").val('');
                 disableMandatoryItems("#sltIdentification");
+                ui.owner.listScrollTop(0);
 
-                // var $list = $("#combo_list");
-                // // If not already sortable, initialize
-                // if (!$list.hasClass("ui-sortable")) {
-                //     $list.sortable({
-                //         handle: ".drag-handle",
-                //         placeholder: "ui-state-highlight",
-                //         stop: function (event, ui) {
-                //             // Rebuild data source order based on new list order
-                //             var newOrder = [];
-                //             $list.find("li").each(function () {
-                //             var itemText = $(this).text().trim();
-                //             var found = IdentificationCategory.find(e => e.Title === itemText);
-                //             if (found) newOrder.push(found);
-                //             });
-
-                //             employees = newOrder;
-                //             $("#sltIdentification").igCombo("option", "dataSource", IdentificationCategory);
-                //             $("#sltIdentification").igCombo("dataBind");
-                //             console.log("New order:", IdentificationCategory.map(e => e.Title));
-                //         }
-                //     });
+                // if (ui.owner.selectedItems()) {
+                //     var listHolder = ui.owner.dropDown().find(".ui-igcombo-listitemholder");
+                //     var selectedElemIndex = listHolder.children().index(ui.owner.selectedItems()[0].element)
+                //     var itemHeight = listHolder.height() / listHolder.children().length;
+                //     ui.owner.listScrollTop(selectedElemIndex * itemHeight);
                 // }
             },
             selectionChanged: function(evt, ui) {
-                $("#sltIdentification").igCombo("openDropDown");
+                if (suppressIdentificationSelectionChange) {
+                    evt.stopImmediatePropagation();  // stops bubbling to other handlers
+                    return;                          // skip any normal selection logic
+                }
+                isIdentificationChanged = true;
+                selectedValuesIdentification = $("#sltIdentification").igCombo("value");
+                // $("#sltIdentification").igCombo("openDropDown");
                 ui.owner.element.find("input[type='text']").val('');
                 disableMandatoryItems("#sltIdentification");
                 showHideGridColumns("#sltIdentification");
-                uncheckSelectAll("#sltIdentification");
+                uncheckSelectAll("#sltIdentification"); 
+            },
+            filtered: function (evt, ui) {
+                const combo = ui.owner;
+                const text = combo.text();  
+
+                // prevent selectionChanged while we reapply
+                suppressIdentificationSelectionChange = true;
+                requestAnimationFrame(() => {                    
+                    combo.text(text); // restore input text
+                    suppressIdentificationSelectionChange = false;   // re-enable after done
+                });                
             }
         });
 
@@ -205,23 +218,10 @@
             showHideGridColumns("#sltIdentification");
         });
 
-        // $("#sltIdentification").on("igcombodropdownopened", function (evt, ui) {
-        // // Access the dropdown list element
-        // var list = ui.owner.dropDown();
-        // // Make it sortable using jQuery UI
-        // list.sortable({
-        //     containment: "parent",
-        //     update: function(event, ui) {
-        //         // You can handle reordering logic here
-        //         var newOrder = list.find("li").map(function() {
-        //             return $(this).text();
-        //         }).get();
-        //         console.log("New order:", newOrder);
-        //     }
-        // });
-    // });
 
-
+        let selectedValuesSource = [];
+        let isSourceChanged = false;
+        let suppressSourceSelectionChange = false;
         //Populate Source Combobox        
         $("#sltSource").igCombo({
             dataSource: SourceCategory,
@@ -235,6 +235,9 @@
             dropDownOnFocus: true,
             enableClearButton: false,
             closeDropDownOnBlur: true,
+            autoComplete: false,
+            autoSelectFirstMatch: false,
+            allowCustomValue: true,
             locale: {
                 placeHolder: "Select Source"
             },
@@ -249,16 +252,40 @@
                 ui.owner.element.find("input[type='text']").val('');
             },
             dropDownOpened: function (evt, ui) {
+                if (isSourceChanged)
+                    $("#sltSource").igCombo("value", selectedValuesSource);
+                else
+                    checkSourceColumnsToShow();
+
                 ui.owner.element.find("input[type='text']").val('');
+                disableMandatoryItems("#sltSource");
+                ui.owner.listScrollTop(0);
             },
             dropDownClosed: function (evt, ui) {
                 ui.owner.element.find("input[type='text']").val('');
              },
             selectionChanged: function(evt, ui) {
+                if (suppressSourceSelectionChange) {
+                    evt.stopImmediatePropagation();  // stops bubbling to other handlers
+                    return;                          // skip any normal selection logic
+                }
+                isSourceChanged = true;
+                selectedValuesSource = $("#sltSource").igCombo("value");
                 ui.owner.element.find("input[type='text']").val('');
                 showHideGridColumns("#sltSource");
                 uncheckSelectAll("#sltSource");
                 includeDisabledItem("#sltSource");
+            },
+            filtered: function (evt, ui) {
+                const combo = ui.owner;
+                const text = combo.text();
+
+                // prevent selectionChanged while we reapply
+                suppressSourceSelectionChange = true;
+                requestAnimationFrame(() => {
+                    combo.text(text); // restore input text
+                    suppressSourceSelectionChange = false;   // re-enable after done
+                });
             }
         });
 
@@ -284,6 +311,9 @@
         }
 
 
+        let selectedValuesImpact = [];
+        let isImpactChanged = false;
+        let suppressImpactSelectionChange = false;
         //Populate Impact Combobox        
         $("#sltImpact").igCombo({
             dataSource: ImpactCategory,
@@ -297,6 +327,9 @@
             dropDownOnFocus: true,
             enableClearButton: false,
             closeDropDownOnBlur: true,
+            autoComplete: false,
+            autoSelectFirstMatch: false,
+            allowCustomValue: true,
             locale: {
                 placeHolder: "Select Impact"
             },
@@ -311,16 +344,40 @@
                 ui.owner.element.find("input[type='text']").val('');
             },
             dropDownOpened: function (evt, ui) {
+                if (isImpactChanged)
+                    $("#sltImpact").igCombo("value", selectedValuesImpact);
+                else
+                    checkImpactColumnsToShow();
+
                 ui.owner.element.find("input[type='text']").val('');
+                disableMandatoryItems("#sltImpact");
+                ui.owner.listScrollTop(0);
             },
             dropDownClosed: function (evt, ui) {
                 ui.owner.element.find("input[type='text']").val('');
              },
             selectionChanged: function(evt, ui) {
+                if (suppressImpactSelectionChange) {
+                    evt.stopImmediatePropagation();  // stops bubbling to other handlers
+                    return;                          // skip any normal selection logic
+                }
+                isImpactChanged = true;
+                selectedValuesImpact = $("#sltImpact").igCombo("value");
                 ui.owner.element.find("input[type='text']").val('');
                 showHideGridColumns("#sltImpact");
                 uncheckSelectAll("#sltImpact");
                 includeDisabledItem("#sltImpact");
+            },
+            filtered: function (evt, ui) {
+                const combo = ui.owner;
+                const text = combo.text();
+
+                // prevent selectionChanged while we reapply
+                suppressImpactSelectionChange = true;
+                requestAnimationFrame(() => {
+                    combo.text(text); // restore input text
+                    suppressImpactSelectionChange = false;   // re-enable after done
+                });
             }
         });
 
@@ -346,6 +403,9 @@
         }
 
 
+        let selectedValuesActions = [];
+        let isActionsChanged = false;
+        let suppressActionsSelectionChange = false;
         //Populate Actions Combobox        
         $("#sltActions").igCombo({
             dataSource: ActionsCategory,
@@ -359,6 +419,9 @@
             dropDownOnFocus: true,
             enableClearButton: false,
             closeDropDownOnBlur: true,
+            autoComplete: false,
+            autoSelectFirstMatch: false,
+            allowCustomValue: true,
             locale: {
                 placeHolder: "Select Actions"
             },
@@ -373,16 +436,40 @@
                 ui.owner.element.find("input[type='text']").val('');
             },
             dropDownOpened: function (evt, ui) {
+                if (isActionsChanged)
+                    $("#sltActions").igCombo("value", selectedValuesActions);
+                else
+                    checkActionsColumnsToShow();
+
                 ui.owner.element.find("input[type='text']").val('');
+                disableMandatoryItems("#sltActions");
+                ui.owner.listScrollTop(0);
             },
             dropDownClosed: function (evt, ui) {
                 ui.owner.element.find("input[type='text']").val('');
              },
             selectionChanged: function(evt, ui) {
+                if (suppressActionsSelectionChange) {
+                    evt.stopImmediatePropagation();  // stops bubbling to other handlers
+                    return;                          // skip any normal selection logic
+                }
+                isActionsChanged = true;
+                selectedValuesActions = $("#sltActions").igCombo("value");
                 ui.owner.element.find("input[type='text']").val('');
                 showHideGridColumns("#sltActions");
                 uncheckSelectAll("#sltActions");
                 includeDisabledItem("#sltActions");
+            },
+            filtered: function (evt, ui) {
+                const combo = ui.owner;
+                const text = combo.text();
+
+                // prevent selectionChanged while we reapply
+                suppressActionsSelectionChange = true;
+                requestAnimationFrame(() => {
+                    combo.text(text); // restore input text
+                    suppressActionsSelectionChange = false;   // re-enable after done
+                });
             }
         });
 
@@ -408,6 +495,9 @@
         }
 
 
+        let selectedValuesControls = [];
+        let isControlsChanged = false;
+        let suppressControlsSelectionChange = false;
         //Populate Controls Combobox        
         $("#sltControls").igCombo({
             dataSource: ControlsCategory,
@@ -421,6 +511,9 @@
             dropDownOnFocus: true,
             enableClearButton: false,
             closeDropDownOnBlur: true,
+            autoComplete: false,
+            autoSelectFirstMatch: false,
+            allowCustomValue: true,
             locale: {
                 placeHolder: "Select Controls"
             },
@@ -435,12 +528,25 @@
                 ui.owner.element.find("input[type='text']").val('');
             },
             dropDownOpened: function (evt, ui) {
+                if (isControlsChanged)
+                    $("#sltControls").igCombo("value", selectedValuesControls);
+                else
+                    checkControlsColumnsToShow();
+
                 ui.owner.element.find("input[type='text']").val('');
+                disableMandatoryItems("#sltControls");
+                ui.owner.listScrollTop(0);
             },
             dropDownClosed: function (evt, ui) {
                 ui.owner.element.find("input[type='text']").val('');
              },
             selectionChanged: function(evt, ui) {
+                if (suppressControlsSelectionChange) {
+                    evt.stopImmediatePropagation();  // stops bubbling to other handlers
+                    return;                          // skip any normal selection logic
+                }
+                isControlsChanged = true;
+                selectedValuesControls = $("#sltControls").igCombo("value");
                 ui.owner.element.find("input[type='text']").val('');
                 showHideGridColumns("#sltControls");
                 uncheckSelectAll("#sltControls");
@@ -648,159 +754,171 @@
 
 
         // Save View button
-        $("#btnSave").igButton({
-            labelText: "Save/Edit View",
-            width: "120px",
-            click: function (e) {
-                e.preventDefault();
-                var txtviewname = $('#txtViewName').val();
-                var selectedItems = $('#sltView').igCombo("selectedItems");
-                var sltviewname = "";
-                if (selectedItems != null)
-                    if (selectedItems.length > 0) 
-                        sltviewname = selectedItems[0].data.ID;
+        $("#btnSave").on("click", function (e) {
+            e.preventDefault();
+            var txtviewname = $('#txtViewName').val();
+            var selectedItems = $('#sltView').igCombo("selectedItems");
+            var sltviewname = "";
+            if (selectedItems != null)
+                if (selectedItems.length > 0) 
+                    sltviewname = selectedItems[0].data.ID;
                 
-                if (sltviewname == "Default") sltviewname = null;
-                if (!sltviewname && !txtviewname) { 
-                  alert("Please enter or select a viewname.");
-                  e.preventDefault();
-                }
+            if (sltviewname == "Default") sltviewname = null;
+            if (!sltviewname && !txtviewname) { 
+                alert("Please enter or select a viewname.");
+                e.preventDefault();
+            }
 
-                var columns = $("#grid").igGrid("option", "columns");
-                var selectedColumns = columns.filter(i => i.hidden === false).map(i => i.headerText);
-                if (!sltviewname && txtviewname) {
-                    if (confirm("Do you want to create a new view?")) {
-                        var payload = {
-                            viewname: txtviewname,
-                            columns: selectedColumns
-                        };
-                        $.ajax({
-                            type: 'POST',
-                            url: '@Url.Action("SaveSettings", "Export")',
-                            contentType: 'application/json; charset=utf-8',
-                            data: JSON.stringify(payload),
-                            success: function(response){
-                                $('#txtViewName').igTextEditor("value", "");
-                                $("#sltView").igCombo({
-                                    dataSource: JSON.parse(response.views),
-                                    textKey: "Title",
-                                    valueKey: "ID",
-                                    dataSourceType: "json"
-                                });
-                                $("#sltView").igCombo("dataBind");
-                                $("#sltView").igCombo("value", response.newViewId);
-                                alert('View saved');
-                            },
-                            error: function(){
-                                alert('Error saving view');
-                            }
-                        });
-                    }
-                    else
-                        e.preventDefault();
+            var columns = $("#grid").igGrid("option", "columns");
+            var selectedColumns = columns.filter(i => i.hidden === false).map(i => i.headerText);
+            if (!sltviewname && txtviewname) {
+                if (confirm("Do you want to create a new view?")) {
+                    var payload = {
+                        viewname: txtviewname,
+                        columns: selectedColumns
+                    };
+                    $.ajax({
+                        type: 'POST',
+                        url: '@Url.Action("SaveSettings", "Export")',
+                        contentType: 'application/json; charset=utf-8',
+                        data: JSON.stringify(payload),
+                        success: function(response){
+                            $('#txtViewName').igTextEditor("value", "");
+                            $("#sltView").igCombo({
+                                dataSource: JSON.parse(response.views),
+                                textKey: "Title",
+                                valueKey: "ID",
+                                dataSourceType: "json"
+                            });
+                            $("#sltView").igCombo("dataBind");
+                            $("#sltView").igCombo("value", response.newViewId);
+                            alert('View saved');
+                        },
+                        error: function(){
+                            alert('Error saving view');
+                        }
+                    });
                 }
+                else
+                    e.preventDefault();
+            }
 
-                if (sltviewname && !txtviewname) {
-                    var data = $("#sltView").igCombo("dataForValue", sltviewname);
-                    if (confirm("Do you want to edit " + data.Title + " view?")) {
-                        var payload = {
-                            viewname: sltviewname,
-                            columns: selectedColumns
-                        };
-                        $.ajax({
-                            type: 'POST',
-                            url: '@Url.Action("EditSettings", "Export")',
-                            contentType: 'application/json; charset=utf-8',
-                            data: JSON.stringify(payload),
-                            success: function(response){
-                                alert('View updated');
-                            },
-                            error: function(){
-                                alert('Error upadting view');
-                            }
-                        });
-                    }
-                    else
-                        e.preventDefault();
+            if (sltviewname && !txtviewname) {
+                var data = $("#sltView").igCombo("dataForValue", sltviewname);
+                if (confirm("Do you want to edit " + data.Title + " view?")) {
+                    var payload = {
+                        viewname: sltviewname,
+                        columns: selectedColumns
+                    };
+                    $.ajax({
+                        type: 'POST',
+                        url: '@Url.Action("EditSettings", "Export")',
+                        contentType: 'application/json; charset=utf-8',
+                        data: JSON.stringify(payload),
+                        success: function(response){
+                            alert('View updated');
+                        },
+                        error: function(){
+                            alert('Error upadting view');
+                        }
+                    });
                 }
+                else
+                    e.preventDefault();
+            }
 
-                if (sltviewname && txtviewname) {
-                  alert("Choose any one");
-                  e.preventDefault();
-                }
+            if (sltviewname && txtviewname) {
+                alert("Choose any one");
+                e.preventDefault();
             }
         });
 
 
         // Delete View button
-        $("#btnDelete").igButton({
-            labelText: "Delete View",
-            width: "120px",
-            click: function (e) {
-                e.preventDefault();
-                var selectedItems = $('#sltView').igCombo("selectedItems");
-                var viewname = "";
-                if (selectedItems != null)
-                    if (selectedItems.length > 0)
-                        viewname = selectedItems[0].data.ID;
+        $("#btnDelete").on("click", function (e) {
+            e.preventDefault();
+            var selectedItems = $('#sltView').igCombo("selectedItems");
+            var viewname = "";
+            if (selectedItems != null)
+                if (selectedItems.length > 0)
+                    viewname = selectedItems[0].data.ID;
 
-                if (!viewname) {
-                  alert("Please select a viewname.");
-                  e.preventDefault();
+            if (!viewname) {
+                alert("Please select a viewname.");
+                e.preventDefault();
+            }
+            else {
+                var data = $("#sltView").igCombo("dataForValue", viewname);
+                if (confirm("Are you sure to delete " + data.Title + " view?")) {
+                    var payload = {
+                        viewname: viewname,
+                    };
+                    $.ajax({
+                        type: 'POST',
+                        url: '@Url.Action("DeleteSettings", "Export")',
+                        contentType: 'application/json; charset=utf-8',
+                        data: JSON.stringify(payload),
+                        success: function(response){
+                            $('#txtViewName').igTextEditor("value", "");
+                            $("#sltView").igCombo({
+                                dataSource: JSON.parse(response.views),
+                                textKey: "Title",
+                                valueKey: "ID",
+                                dataSourceType: "json"
+                            });
+                            $("#sltView").igCombo("dataBind");
+                            alert('View deleted');
+                        },
+                        error: function(){
+                            alert('Error deleting view');
+                        }
+                    });
                 }
-                else {
-                    var data = $("#sltView").igCombo("dataForValue", viewname);
-                    if (confirm("Are you sure to delete " + data.Title + " view?")) {
-                        var payload = {
-                            viewname: viewname,
-                        };
-                        $.ajax({
-                            type: 'POST',
-                            url: '@Url.Action("DeleteSettings", "Export")',
-                            contentType: 'application/json; charset=utf-8',
-                            data: JSON.stringify(payload),
-                            success: function(response){
-                                $('#txtViewName').igTextEditor("value", "");
-                                $("#sltView").igCombo({
-                                    dataSource: JSON.parse(response.views),
-                                    textKey: "Title",
-                                    valueKey: "ID",
-                                    dataSourceType: "json"
-                                });
-                                $("#sltView").igCombo("dataBind");
-                                alert('View deleted');
-                            },
-                            error: function(){
-                                alert('Error deleting view');
-                            }
-                        });
-                    }
-                    else
-                        e.preventDefault();
-                }
+                else
+                    e.preventDefault();
             }
         });
 
 
         // Export To Excel
-        $("#btnExportExcel").igButton({
-            labelText: "Export To Excel",
-            width: "120px",
-            click: function (e) {
-                e.preventDefault();
-                var exp = new $.ig.GridExcelExporter();
-                exp.exportGrid($("#grid"), {
-                    fileName: "Risks_" + getDate(),
-                    gridFeatureOptions: {
-                        "sorting": "applied",
-                        "filtering": "applied",
-                        "hiding": "visibleColumnsOnly",
-                        "columnfixing": "applied",
-                        // "paging": "currentPage"
-                    }
-                });
-            }
+        var exportingIndicator = $('<div>');
+        $("#btnExportExcel").on("click", function (e) {
+            e.preventDefault();
+            var exp = new $.ig.GridExcelExporter();
+
+            exp.exportGrid($("#grid"), {
+                fileName: "Risks_" + getDate(),
+                gridFeatureOptions: {
+                    "sorting": "applied",
+                    "filtering": "applied",
+                    "hiding": "visibleColumnsOnly",
+                    "columnfixing": "applied",
+                    // "paging": "currentPage"
+                },
+                exportStarting: function (e, args) {
+                    showExportingIndicator(args.grid, exportingIndicator);
+                },
+                success: function () {
+                    hideExportingIndicator(exportingIndicator);
+                },                    
+            });
         });
+
+        function showExportingIndicator(grid, exportingIndicator) {
+            var $gridContainer = $('#' + grid.attr('id') + '_container');
+
+            exportingIndicator.css({
+                "width": $gridContainer.outerWidth(),
+                "height": $gridContainer.outerHeight()
+            }).html('<span class="exporting-text">Exporting...</span>');
+            exportingIndicator.addClass("exporting-indicator");
+
+            $gridContainer.append(exportingIndicator);
+        }
+
+        function hideExportingIndicator(exportingIndicator) {
+            exportingIndicator.remove();
+        }
 
         function getDate() {
             var today = new Date();
@@ -820,53 +938,4 @@
             return today;
         }
      });
-
-
-    //  $(document).on("igcombodropdownopened", "#sltIdentification", function (evt, ui) {
-    // const select = $("#sltIdentification");
-    // const display = select.find(".ui-igcombo-fieldholder ui-igcombo-fieldholder-ltr ");
-    // const dropdown = select.find(".ui-igcombo-listitemholder");
-
-    // //        const select = $("#sortableSelect");
-    // // const display = select.find(".select-display");
-    // // const dropdown = select.find(".select-dropdown");
-    // // // const realSelect = $("#realSelect");
-
-    // // Toggle dropdown open/close
-    // display.on("click", function() {
-    //   dropdown.toggle();
-    // });
-
-    // // Close when clicking outside
-    // $(document).on("click", function(e) {
-    //   if (!select.is(e.target) && select.has(e.target).length === 0) {
-    //     dropdown.hide();
-    //   }
-    // });
-
-    // // Make the dropdown sortable
-    // dropdown.sortable({
-    //   update: function(event, ui) {
-    //     const newOrder = dropdown.children().map(function() {
-    //       return $(this).data("value");
-    //     }).get();
-
-    //     // // Reorder hidden select options
-    //     // const options = realSelect.children();
-    //     // newOrder.forEach(function(val) {
-    //     //   const opt = options.filter(`[value='${val}']`);
-    //     //   realSelect.append(opt);
-    //     // });
-
-    //     // console.log("New order:", newOrder);
-    //   }
-    // });
-
-    // // Click to select an item (for display)
-    // dropdown.on("click", "li", function() {
-    //   const text = $(this).text();
-    //   display.text(text);
-    //   dropdown.hide();
-    // });
-    // });
     </script>
