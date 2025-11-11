@@ -13,6 +13,7 @@ namespace SRMDataMigrationIgnite.Extensions
             services.AddScoped<IRiskRegistersService, RiskRegistersService>();
             services.AddScoped<IDMExportViewEntitiesService, DMExportViewEntitiesService>();
             services.AddScoped<IDMExportViewEntityColumnsService, DMExportViewEntityColumnsService>();
+            services.AddScoped<IDMImportConfig, DMImportConfigService>();
             return services;
         }
     }

@@ -1,0 +1,429 @@
+﻿@{
+    ViewData["Title"] = "Excel Import";
+    var DbColumns = ViewData["DbColumns"];
+    var DbTransform = ViewData["DbTransform"];
+    var DbTransformType = ViewData["DbTransformType"];
+}
+
+<h2>Risk - Import</h2>
+
+<form id="frmImport" enctype="multipart/form-data">
+    <input type="file" id="excelFile" accept=".xlsx,.xls,.csv,.json" />
+    <button type="button" id="btnProcess" class="btn-Save">Process</button>
+</form>
+
+<hr />
+
+<h3>Available Sheets</h3>
+<div id="sheetList"></div>
+
+<!-- Tabs -->
+<div id="sheetTabs"></div>
+<div id="tabContents"></div>
+
+<button type="button" id="btnSave" class="btn-Save" style="display:none;">Save Configuration</button>
+<button type="button" id="btnUpload" class="btn-Save" style="display:none;">Upload</button>
+
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
+<script>
+    let workbookData = null;
+    let selectedHeaderRows = {};
+    let fieldMappings = {};
+    let globalUnmapped = {};
+    const databaseColumns = @Html.Raw(DbColumns);
+    const transformTypeList = @Html.Raw(DbTransformType);
+    const transformList = JSON.parse(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(DbTransform)));
+
+    // Upload Excel
+    $("#btnProcess").on("click", function () {
+        const file = $("#excelFile")[0].files[0];
+        if (!file) return alert("Please select an Excel file.");
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        $("#sheetList").html("Loading...");
+        $("#sheetTabs, #tabContents").empty();
+
+        $.ajax({
+            url: '@Url.Action("Index", "Import")',
+            type: "POST",
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function (res) {
+                if (res.success) {
+                    workbookData = res.data;
+                    renderSheetButtons(workbookData.worksheetNames);
+                    $("#btnSave").show();
+                    $("#btnUpload").show();
+                } else {
+                    $("#sheetList").html("Error: " + res.message);
+                }
+            },
+            error: function () {
+                $("#sheetList").html("Upload failed.");
+            }
+        });
+    });
+
+    // Render available sheets
+    function renderSheetButtons(sheets) {
+        let html = "";
+        sheets.forEach((sheet, i) => {
+            html += `<div class="sheet-btn" data-index="${i}">${sheet}</div>`;
+        });
+        $("#sheetList").html(html);
+
+        $(".sheet-btn").on("click", function () {
+            const index = $(this).data("index");
+            const sheetName = workbookData.worksheetNames[index];
+
+            if (!$(`#sheetTabs .tab[data-index='${index}']`).length) {
+                addSheetTab(sheetName, index);
+                $(this).addClass("added");
+            }
+
+            switchToTab(index);
+        });
+    }
+
+    // Add tab
+    function addSheetTab(sheetName, index) {
+        const tab = `<div class="tab" data-index="${index}">${sheetName}<span class="close-btn">×</span></div>`;
+        const content = `
+            <div class="tabContent" data-index="${index}">
+                <div class="sheetPreview"></div>
+                <div class="mappingArea"></div>
+            </div>`;
+
+        const unmappedTab = $("#sheetTabs .tab[data-index='unmapped']");
+        const unmappedContent = $("#tabContents .tabContent[data-index='unmapped']");
+
+        if (unmappedTab.length) {
+            unmappedTab.before(tab);
+            unmappedContent.before(content);
+        } else {
+            $("#sheetTabs").append(tab);
+            $("#tabContents").append(content);
+        }
+
+        // Always move Unmapped to last (safe guard)
+        ensureUnmappedLast();
+
+        // Add "Unmapped" tab if not exists
+        if (!$("#sheetTabs .tab[data-index='unmapped']").length) {
+            $("#sheetTabs").append(`<div class="tab" data-index="unmapped">Unmapped</div>`);
+            $("#tabContents").append(`<div class="tabContent" data-index="unmapped"><div class="unmapped-overview"></div></div>`);
+
+            $("#sheetTabs .tab[data-index='unmapped']").on("click", function () {
+                $(".tab, .tabContent").removeClass("active");
+                $(this).addClass("active");
+                $(`.tabContent[data-index='unmapped']`).addClass("active");
+                renderGlobalUnmapped();
+            });
+        }
+
+        // Tab click
+        $(`#sheetTabs .tab[data-index='${index}']`).on("click", function () {
+            switchToTab(index);
+        });
+
+        // Close
+        $(`#sheetTabs .tab[data-index='${index}'] .close-btn`).on("click", function (e) {
+            e.stopPropagation();
+            removeSheetTab(index);
+        });
+    }
+
+    // Switch tabs
+    function switchToTab(index) {
+        $(".tab, .tabContent").removeClass("active");
+        $(`.tab[data-index='${index}']`).addClass("active");
+        $(`.tabContent[data-index='${index}']`).addClass("active");
+        if (index !== "unmapped") renderSheetPreview(index);
+    }
+
+    // Remove tab
+    function removeSheetTab(index) {
+        const sheetName = workbookData.worksheetNames[index];
+        $(`.tab[data-index='${index}'], .tabContent[data-index='${index}']`).remove();
+        delete fieldMappings[sheetName];
+        delete selectedHeaderRows[sheetName];
+        $(`.sheet-btn[data-index='${index}']`).removeClass("added");
+
+        // Remove Unmapped if no sheets left
+        if ($("#sheetTabs .tab").length <= 1) {
+            $("#sheetTabs, #tabContents").empty();
+        } else {
+            const firstTab = $("#sheetTabs .tab:not([data-index='unmapped'])").first();
+            if (firstTab.length) switchToTab(firstTab.data("index"));
+        }
+        ensureUnmappedLast();
+    }
+
+    // Render sheet preview
+    const maxChars = 30;
+    let isUnnamedColumn = false;
+    let emptyCells = [];
+    function renderSheetPreview(index) {
+        const sheet = workbookData.sheets[index];
+        const sheetName = sheet.worksheetName;
+        const container = $(`.tabContent[data-index=${index}]`);
+        const previewDiv = container.find(".sheetPreview");
+        const mappingDiv = container.find(".mappingArea");        
+
+        let html = `<p><em>Click a row to set it as the header row.</em></p><table id="previewTable" class="excelTable">`;
+        sheet.rows.forEach((row, i) => {
+            html += `<tr data-rowindex="${i + 1}">`;
+            // row.forEach(cell => html += `<td>${cell || ""}</td>`);
+            row.forEach(cell => {
+                const text = cell || "";
+                const displayText = text.length > maxChars ? text.substring(0, maxChars) + "..." : text;
+
+                // Add the ellipsis class for CSS styling and a title for full view
+                html += `<td class=".ellipsis-multiline" title="${text.replace(/"/g, '&quot;')}">${displayText}</td>`;
+            });
+            html += "</tr>";
+        });
+        html += "</table>";
+        previewDiv.html(html);
+
+        // const savedIndex = selectedHeaderRows[sheetName];
+        // if (savedIndex) {
+        //     previewDiv.find(`tr[data-rowindex='${savedIndex}']`).addClass("selected");
+        //     showFieldMapping(sheetName, sheet.rows[savedIndex - 1], mappingDiv);
+        // }
+        
+        let colIndex = 0;
+        previewDiv.find("tr").on("click", function () {
+            isUnnamedColumn = false;
+            emptyCells = [];
+            const rowIndex = $(this).data("rowindex");
+            previewDiv.find("tr").removeClass("selected");
+            $(this).addClass("selected");
+
+            const currentSelected = selectedHeaderRows[sheetName];
+            if (currentSelected === rowIndex) {
+                // Deselect
+                $(this).removeClass("selected");
+                delete selectedHeaderRows[sheetName];
+                delete fieldMappings[sheetName];
+                $(".mappingArea").empty();
+                return;
+            }
+
+            selectedHeaderRows[sheetName] = rowIndex;
+            const headerValues = [];
+            $(this).find("td").each(function () {
+                colIndex = colIndex + 1;
+                // var cellValue = $(this).text();
+                var cellValue = $(this).attr('title');
+                if (cellValue == "") {
+                    isUnnamedColumn = true;
+                    emptyCells.push(`${colIndex}`);
+                }
+                headerValues.push(cellValue);
+            });
+            
+            if (!isUnnamedColumn) {                
+                $.ajax({
+                    url: '/Import/ColumnFuzzyMatch',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ headers: headerValues }),
+                    success: res => {
+                        if (res.success) {
+                            showFieldMapping(sheetName, headerValues, res.matchedCells, mappingDiv);                            
+                        }
+                    }
+                });
+            }
+            else
+                alert(`Some cells are empty!\nPlease fill in all required headers before uploading\n\nMissing values at columns:\n${emptyCells.slice(0, 10).join(', ')}${emptyCells.length > 10 ? '\n...and more.' : ''}`);
+        });
+    }
+
+    // Mapping UI
+    function showFieldMapping(sheetName, headerValues, matchedValue, container) {        
+        if (!fieldMappings[sheetName]) fieldMappings[sheetName] = {}; // <-- make sure sheet object exists
+        let html = `<h4>Map Excel Columns to Database Fields</h4><div class='mapping-container'>`;
+
+        headerValues.forEach(col => {
+            const colName = col || "Unnamed Column";
+            var fuzzyMatchedValue = matchedValue.filter(i => i.original === colName);
+            const best = fuzzyMatchedValue.length > 0 ? fuzzyMatchedValue[0].matches : null;
+            var fuseResult = best ? best.column : "";
+
+            // // Fuzzy search using FuseJS
+            // if (colName != "Unnamed Column") {
+            //     const fuse = new Fuse(databaseColumns, { includeScore: true, threshold: 0.3, distance: 40 });
+            //     const result = fuse.search(colName);
+
+            //     if (result.length > 0) {
+            //         const best = result[0];
+            //         fuseResult = best.item;
+            //     }
+            // }
+
+            var dataColName = jQuery.escapeSelector(colName.replace(/[\r\n]+/g, ''));
+            html += `
+                <div class="mapping-item">
+                    <label>${colName}</label>
+                    <select class="mapping-select" data-colname="${dataColName}">
+                        <option value="">--Select DB Column--</option>
+                        ${databaseColumns.map(dbCol => `<option value="${dbCol}" ${dbCol === fuseResult ? "selected" : ""}>${dbCol}</option>`).join("")}
+                    </select>
+                    <button class='btn btn-success btn-sm add-transform-btn'>Add</button>
+                </div>`;
+
+            if (fieldMappings[sheetName]) {                
+                Object.entries(fieldMappings[sheetName]).forEach(([colName, dbCol]) => {
+                    dataColName = jQuery.escapeSelector(colName.replace(/[\r\n]+/g, ''));
+                    container.find(`.mapping-select[data-colname='${dataColName}']`).val(dbCol);
+                });
+                if (fuseResult != "") {
+                    fieldMappings[sheetName][colName] = fuseResult;
+                }
+            }
+        });
+
+        html += "</div>";
+        container.html(html);               
+
+        if (fieldMappings[sheetName]) {
+            Object.entries(fieldMappings[sheetName]).forEach(([excelCol, dbCol]) => {
+                container.find(`.mapping-select[data-colname='${excelCol}']`).val(dbCol);
+            });
+        }
+
+        container.find(".mapping-select").on("change", function () {
+            const excelCol = $(this).data("colname");
+            const dbCol = $(this).val();
+            if (!fieldMappings[sheetName]) fieldMappings[sheetName] = {};
+            fieldMappings[sheetName][excelCol] = dbCol;
+        });
+    }
+
+    $(document).on("click", ".add-transform-btn", function() {
+        const selectHtml = `<table class="borderless-table">
+            <tr><td>
+                <select class='form-select mx-2 db-transform-select'>
+                    <option value="">Select Transform</option>
+                    ${transformTypeList.map(t => `<option value="${t}">${t}</option>`).join("")}
+                </select>
+            </td></tr>
+            <tr><td>
+                <input type="text" name="txtReplace" class="customValue" placeholder="Enter value to replace" style="display:none;" />
+                <select class='form-select mx-2 db-transformDate-select' style="display:none;">
+                    <option value="">Select Date Format</option>
+                    ${transformList.filter(t => t.IsTextbox === null).map(t => `<option value="${t.TransformOptions}">${t.TransformOptions}</option>`).join("")}
+                </select>
+            </td></tr>
+            <tr><td>
+                <input type="text" name="txtText" class="customValue" placeholder="Enter value" style="display:none;" />
+            </td></tr></table>`;
+
+        $(this).after(selectHtml);
+    });
+
+        $(document).on('change', '.db-transform-select', function () {
+            const table = $(this).closest('table');
+            let transformType = $(this).val();
+            let isTextBox = null;
+            
+            if (transformType != "")
+                isTextBox = transformList.filter(t => t.TransformType === transformType).map(t => t.IsTextbox);
+
+            const txtReplace = table.find("input[name='txtReplace']");
+            const txtText = table.find("input[name='txtText']");
+            const select = table.find('.db-transformDate-select');
+            txtReplace.hide().val('');
+            txtText.hide().val('');
+            select.hide().val('');
+
+            if (transformType == "Replace"){               
+                txtReplace.show();
+                txtText.show();
+            }
+            else if (transformType == "DateFormat") {                
+                select.show();
+            }
+            else if (isTextBox[0] == true) {
+                txtText.show();
+            }
+        });
+
+    // Render global unmapped + default values
+    function renderGlobalUnmapped() {
+        const allMapped = Object.values(fieldMappings).flatMap(obj => Object.values(obj || {}));
+        const unmapped = databaseColumns.filter(col => !allMapped.includes(col));
+
+        let html = "<h3>Unmapped Database Fields</h3>";
+        if (unmapped.length === 0) {
+            html += "<p>.All database columns are mapped.</p>";
+        } else {
+            unmapped.forEach(col => {
+                const current = globalUnmapped[col] || { action: "ignore", value: "" };
+                html += `
+                    <div class="unmapped-item" data-dbcol="${col}">
+                        <strong>${col}</strong><br>
+                        <label><input type="radio" name="action_${col}" value="ignore" ${current.action === "ignore" ? "checked" : ""}> Ignore</label>
+                        <label><input type="radio" name="action_${col}" value="default" ${current.action === "default" ? "checked" : ""}> Default value:
+                            <input type="text" class="default-input" data-dbcol="${col}" value="${current.value}" placeholder="Enter default...">
+                        </label>
+                    </div>`;
+            });
+        }
+
+        $(".unmapped-overview").html(html);
+
+        $(".unmapped-item input").on("change keyup", function () {
+            const dbCol = $(this).closest(".unmapped-item").data("dbcol");
+            const action = $(`input[name='action_${dbCol}']:checked`).val();
+            const value = $(`.default-input[data-dbcol='${dbCol}']`).val();
+            globalUnmapped[dbCol] = { action, value };
+        });
+    }
+
+    function ensureUnmappedLast() {
+        const unmappedTab = $("#sheetTabs .tab[data-index='unmapped']");
+        const unmappedContent = $("#tabContents .tabContent[data-index='unmapped']");
+
+        if (unmappedTab.length) {
+            $("#sheetTabs").append(unmappedTab);
+        }
+        if (unmappedContent.length) {
+            $("#tabContents").append(unmappedContent);
+        }
+    }
+
+    // Save configuration
+    $("#btnSave").on("click", function () {
+        const payload = {
+            headerRows: selectedHeaderRows,
+            mappings: fieldMappings,
+            unmapped: globalUnmapped
+        };
+
+        $.ajax({
+            url: '@Url.Action("SaveMappingConfig", "Import")',
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(payload),
+            success: function (res) {
+                alert(res.message || "Configuration saved!");
+            },
+            error: function (xhr) {
+                alert("Error: " + xhr.responseText);
+            }
+        });
+    });
+
+    // Upload
+    $("#btnUpload").on("click", function () {
+    
+    });
+</script>

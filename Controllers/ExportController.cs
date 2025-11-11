@@ -20,19 +20,15 @@ namespace SRMDataMigrationIgnite.Controllers
 {
     public class ExportController : Controller
     {
-        private readonly ApplicationDbContext _context;
-        private readonly IConfiguration _config;
         private readonly DataSanitizer _sanitizer;
 
         private readonly IRiskRegistersService _iRiskRegistersService;
         private readonly IDMExportViewEntitiesService _iDMExportViewEntitiesService;
         private readonly IDMExportViewEntityColumnsService _iDMExportViewEntityColumnsService;
 
-        public ExportController(ApplicationDbContext context, IConfiguration config, DataSanitizer sanitizer,
-                IRiskRegistersService riskRegistersService, IDMExportViewEntitiesService dmExportViewEntitiesService, IDMExportViewEntityColumnsService dmExportViewEntityColumnsService)
+        public ExportController(DataSanitizer sanitizer, IRiskRegistersService riskRegistersService, 
+                IDMExportViewEntitiesService dmExportViewEntitiesService, IDMExportViewEntityColumnsService dmExportViewEntityColumnsService)
         {
-            _context = context;
-            _config = config;
             _sanitizer = sanitizer;
             _iRiskRegistersService = riskRegistersService;
             _iDMExportViewEntitiesService = dmExportViewEntitiesService;
