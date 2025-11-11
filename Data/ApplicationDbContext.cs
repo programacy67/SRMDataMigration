@@ -23,5 +23,7 @@ namespace SRMDataMigrationIgnite.Data
         public DbSet<DMColumns> dmColumns { get; set; }
         public DbSet<DMExportViewEntities> dmExportViewEntities { get; set; }
         public DbSet<DMExportViewEntityColumns> dmExportViewEntityColumns { get; set; }
+        public DbSet<DMTransform> dmTransform { get; set; }
+        public DbSet<DMImportConfig> dmImportConfig { get; set; }
     }
 }

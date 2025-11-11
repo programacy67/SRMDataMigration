@@ -88,84 +88,322 @@
             display: inline-block;
         }
 
-        /* .ui-igcombo-listitem, .ui-igcombo-checkbox {
-            position:absolute !important;
-            border: 0px !important;
-        } */
+        .exporting-indicator {
+            position: absolute;
+            background-color: rgba(181, 181, 181, 0.9);
+            top: 0;
+            left: 0;
+            z-index: 100000;
+            text-align: center;
+            vertical-align: middle;
+        }
+            .exporting-indicator:after {
+                content: "";
+                display: inline-block;
+                vertical-align: middle;
+                height: 100%;
+            }
 
-        .drag-handle {
-            cursor: move;
-            margin-right: 6px;
-            color: #999;
+        .exporting-text {
+            font-size: 46px;
+            font-weight: bold;
+            vertical-align: middle;
         }
 
-        .ui-sortable-helper {
-            background: #f0f0f0;
-            opacity: 0.9;
+        .btn-Delete {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
         }
 
-        .ui-state-highlight {
-            background: #dff0ff;
-            height: 1.8em;
-            line-height: 1.8em;
+            .btn-Delete:hover {
+                background-color: #3c8f42;
+            }
+
+
+        /* For Imports */
+        #sheetList {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 20px;
         }
 
+        .sheet-btn {
+            padding: 8px 14px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background-color: #f4f4f4;
+            cursor: pointer;
+            width: 180px;
+        }
+            .sheet-btn.added {
+                background-color: #28a745;
+                color: white;
+            }
 
+        #sheetTabs {
+            display: flex;
+            flex-wrap: wrap;
+            border-bottom: 2px solid #444;
+            margin-bottom: 10px;
+            align-items: center;
+        }
 
-
-
-
-
-        .custom-select {
+        .tab {
             position: relative;
-            width: 220px;
+            padding: 8px 30px 8px 15px;
+            border: 1px solid #444;
+            border-bottom: none;
+            background-color: #eee;
+            border-radius: 5px 5px 0 0;
+            margin-right: 5px;
+            cursor: pointer;
+        }
+            .tab.active {
+                background-color: #333;
+                color: white;
+            }
+
+            .tab .close-btn {
+                position: absolute;
+                right: 6px;
+                top: 2px;
+                font-weight: bold;
+                color: #900;
+                cursor: pointer;
+            }
+
+        .sheetPreview {
+            overflow-x: auto;
+        }
+
+        .tabContent {
+            display: none;
+            border: 1px solid #444;
+            border-radius: 0 5px 5px 5px;
+            padding: 10px;
+        }
+            .tabContent.active {
+                display: block;
+            }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        table, th, td {
+            border: 1px solid #333;
+        }
+
+        th, td {
+            padding: 5px;
+        }
+
+        tr.selected {
+            background-color: #cce5ff;
+        }
+
+        .ellipsis-multiline {
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2; /* number of lines */
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 250px;
+        }
+
+        .mapping-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .unmapped-overview {
+            padding: 10px;
+        }
+
+        .unmapped-item {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 12px;
+            padding: 6px;
+            border: 1px solid #aaa;
+            border-radius: 5px;
+        }
+
+        .btn-Save {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+            .btn-Save:hover {
+                background-color: #3c8f42;
+            }
+    
+
+
+
+        #sheetTabs {
+            display: flex;
+            flex-wrap: wrap;
+            border-bottom: 2px solid #444;
+            margin-bottom: 10px;
+        }
+
+        .tab {
+            padding: 8px 15px;
+            border: 1px solid #444;
+            border-bottom: none;
+            cursor: pointer;
+            margin-right: 5px;
+            background-color: #f5f5f5;
+            border-radius: 5px 5px 0 0;
             user-select: none;
         }
+            .tab.active {
+                background-color: #333;
+                color: white;
+            }
 
-        /* The visible "select" box */
-        .select-display {
-            border: 1px solid #ccc;
-            padding: 8px;
-            background: #fff;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-
-        /* Dropdown list */
-        .select-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            border: 1px solid #ccc;
-            background: #fff;
-            border-radius: 4px;
-            margin-top: 2px;
-            z-index: 999;
+        .tabContent {
             display: none;
-            max-height: 180px;
-            overflow-y: auto;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            border: 1px solid #444;
+            border-radius: 0 5px 5px 5px;
+            padding: 10px;
+        }
+            .tabContent.active {
+                display: block;
+            }
+
+        #sheetsContainer {
+            display: flex;
+            flex-wrap: wrap; /* allows wrapping to next line */
+            gap: 10px; /* spacing between divs */
+            margin-top: 15px;
         }
 
-        .select-dropdown li {
-            padding: 6px 10px;
-            border-bottom: 1px solid #eee;
-            cursor: grab;
-            background: #fff;
+        .sheet-box {
+            padding: 10px 15px;     
+            border: 1px solid #333;
+            background-color: #f0f0f0;
+            cursor: pointer;
+            user-select: none;
+            border-radius: 4px;
+            white-space: nowrap; /* prevent text from breaking */
         }
 
-        .select-dropdown li:last-child {
-            border-bottom: none;
+        .sheet-box {
+            padding: 10px;
+            margin-bottom: 5px;
+            border: 1px solid #333;
+            background-color: #f0f0f0;
+            cursor: pointer;
+            width: fit-content;
+        }
+            .sheet-box:hover {
+                background-color: #f8f9fa;
+                transform: scale(1.05);
+                transition: 0.2s;
+            }
+            .sheet-item.active {
+                background-color: #007bff;
+                color: white;
+            }
+
+        .excelTable {
+            border-collapse: collapse; /* makes borders clean and joined */
+            width: 50%;
+        }
+            .excelTable td {
+                border: 1px solid black; /* sets a 1px solid black border */
+                padding: 8px;
+                text-align: left;
+            }
+
+            .excelTable tr.selected {
+                background: #d1ecf1;
+            }
+
+        .mapping-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 10px;
         }
 
-        .select-dropdown li:hover {
-            background: #f0f0f0;
+        .mapping-item {
+            display: flex;
+            flex-direction: column;
+            width: 180px;
+            border: 1px solid;
+            padding: 6px;
+            margin: 5px;
+            border-radius: 5px;
+        }
+            .mapping-item label {
+                font-weight: bold;
+                margin-bottom: 4px;
+            }
+
+        .add-transform-btn {
+            width: 50px;
+            margin-top: 10px;
+            margin-left: auto;
         }
 
-        .select-dropdown li.ui-sortable-helper {
-            background: #ffeaa7;
+        .db-transform-select {
+            margin-top: 5px;
+            margin-bottom: 5px;
         }
+
+        .borderless-table {
+            border: 1px solid black;
+            margin-bottom: 10px;
+        }
+
+        .borderless-table td,
+        .borderless-table th {
+            border: none;
+        }
+
+        .customValue {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .unmapped-section {
+            margin-top: 25px;
+            border-top: 2px solid #666;
+            padding-top: 10px;
+        }
+
+        .unmapped-item {
+            margin-bottom: 8px;
+        }
+
+        #saveBtn {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+            #saveBtn:hover {
+                background-color: #3c8f42;
+            }
+        /* For Imports Ends */
     </style>
 </body>
 </html>

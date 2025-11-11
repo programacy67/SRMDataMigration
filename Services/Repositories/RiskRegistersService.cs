@@ -30,24 +30,24 @@ namespace SRMDataMigrationIgnite.Services.Repositories
                       WHERE {tableName}.ID = RiskCategories.RiskID FOR XML PATH ('')) AS Category, 
 
                       (SELECT str(RiskAction.UID) + ';' FROM RiskAction 
-                      WHERE {tableName}.ID = RiskAction.RiskID FOR XML PATH('')) AS ActionUID, 
+                      WHERE {tableName}.ID = RiskAction.RiskID FOR XML PATH('')) AS ActionID, 
                       (SELECT RiskAction.Title + ';' FROM RiskAction 
-                      WHERE {tableName}.ID = RiskAction.RiskID FOR XML PATH('')) AS Action, 
+                      WHERE {tableName}.ID = RiskAction.RiskID FOR XML PATH('')) AS ActionTitle, 
 
                       (SELECT str(ControlMeasure.UID) + ';' FROM ControlMeasure 
-                      WHERE {tableName}.ID = ControlMeasure.RiskID FOR XML PATH('')) AS ControlUID, 
+                      WHERE {tableName}.ID = ControlMeasure.RiskID FOR XML PATH('')) AS ControlID, 
                       (SELECT ControlMeasure.Title + ';' FROM ControlMeasure 
-                      WHERE {tableName}.ID = ControlMeasure.RiskID FOR XML PATH('')) AS Control, 
+                      WHERE {tableName}.ID = ControlMeasure.RiskID FOR XML PATH('')) AS ControlTitle, 
 
                       (SELECT str(RiskSource.UID) + ';' FROM RiskSource 
-                      WHERE {tableName}.ID = RiskSource.RiskID FOR XML PATH('')) AS SourceUID, 
+                      WHERE {tableName}.ID = RiskSource.RiskID FOR XML PATH('')) AS SourceID, 
                       (SELECT RiskSource.Title + ';' FROM RiskSource 
-                      WHERE {tableName}.ID = RiskSource.RiskID FOR XML PATH('')) AS Source 
+                      WHERE {tableName}.ID = RiskSource.RiskID FOR XML PATH('')) AS SourceTitle 
 
                     FROM {tableName} 
                     INNER JOIN Project ON Project.ID = {tableName}.ProjectID 
-                    LEFT JOIN RiskStatus ON {tableName}.RiskStatusID = RiskStatus.ID 
-                    WHERE Project.ID = N'{projectId.ToString()}'";
+                    LEFT JOIN RiskStatus ON {tableName}.RiskStatusID = RiskStatus.ID ";
+                    //WHERE Project.ID = N'{projectId.ToString()}'";
 
                 dt = await _repository.LoadDataTableAsync(sql);
             }
