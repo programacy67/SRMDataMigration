@@ -4,38 +4,38 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - SRMDataMigrationIgnite</title>
-    @* <link rel="stylesheet" href="~/lib/ignite-ui/css/structure/infragistics.css" />
-    <link rel="stylesheet" href="~/lib/ignite-ui/css/themes/infragistics/infragistics.theme.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/SRMDataMigrationIgnite.styles.css" asp-append-version="true" />
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
-
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/jquery-ui/jquery-ui.min.js"></script>
-
-    <!-- Ignite UI -->
-    <script src="~/lib/ignite-ui/js/infragistics.core.js"></script>
-    <script src="~/lib/ignite-ui/js/infragis tics.lob.js"></script>*@
-
+    <!-- Essential Modernizr for feature detection (if Ignite UI requires it) -->
     <script src="https://igniteui.com/js/modernizr.min.js"></script>
-    <script src="https://code.jquery.com/jquery-1.9.1.min.js"></script>
-    <script src="https://code.jquery.com/ui/1.10.3/jquery-ui.min.js"></script> 
-    @* <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script> *@
+
+    <!-- Using 3.6.0 as you originally intended, assuming Ignite UI is fine with it -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+    <!-- Using 1.12.1 as it's the more common CDN you picked and generally stable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+
+    <!-- Ignite UI Core and LOB Components -->
     <script src="https://cdn-na.infragistics.com/igniteui/latest/js/infragistics.core.js"></script>
     <script src="https://cdn-na.infragistics.com/igniteui/latest/js/infragistics.lob.js"></script>
+
+    <!-- Third-party utility for file saving (if needed by your Ignite UI Excel Export) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <!-- Ignite UI Excel Exporting (These must come after core and FileSaver.js) -->
     <script src="https://cdn-na.infragistics.com/igniteui/latest/js/infragistics.excel-bundled.js"></script>
     <script src="https://cdn-na.infragistics.com/igniteui/latest/js/modules/infragistics.gridexcelexporter.js"></script>
-    <script src="https://igniteui.com/js-data/nw-products"></script>
-    <link href="https://cdn-na.infragistics.com/igniteui/latest/css/themes/infragistics/infragistics.theme.css" rel="stylesheet" />
-    <link href="https://cdn-na.infragistics.com/igniteui/latest/css/structure/infragistics.css" rel="stylesheet" />
+
+    <!-- Data sources (load after libraries, as they might depend on them) -->
+    <script src="https://igniteui.com/js-data/nw-products"></script>    
+
+    <!-- Link to jQuery UI CSS (Important for sortable and other UI widgets) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css">
+    <!-- Link to Ignite UI CSS (If you are using Ignite UI components) -->
+    <link rel="stylesheet" href="https://cdn-na.infragistics.com/igniteui/latest/css/themes/infragistics/infragistics.theme.css" />
+    <link rel="stylesheet" href="https://cdn-na.infragistics.com/igniteui/latest/css/structure/infragistics.css" />
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        @* <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container-fluid">
                 <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">SRMDataMigrationIgnite</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
@@ -53,7 +53,7 @@
                     </ul>
                 </div>
             </div>
-        </nav>
+        </nav> *@
     </header>
     <div class="container">
         <main role="main" class="pb-3">
@@ -123,6 +123,218 @@
             .btn-Delete:hover {
                 background-color: #3c8f42;
             }
+
+        .parent-div {
+            align-items: center;
+            display: flex;
+            justify-content: space-between;
+            height: 60px;
+            gap: 5px;
+        }
+
+        .right-div {
+            margin-left: auto;
+        }
+
+        /* For Dropdowns */
+        .parent-wrapper {
+            display: inline-block;
+        }
+
+        .custom-select-wrapper {
+            position: relative;
+            width: 280px; /* Or adjust as needed */            
+        }
+
+        .custom-select-trigger {
+            border: 1px solid #ccc;
+            /* border-radius: 5px; */
+            padding: 5px 10px;
+            background-color: #fff;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            /* box-shadow: 0 2px 5px rgba(0,0,0,0.1); */
+            outline: none;
+            gap: 10px;
+        }
+
+            .custom-select-trigger .filter-input-in-trigger {
+                flex-grow: 1; /* Allow input to take available space */
+                border: none;
+                outline: none;
+                padding: 5px 0; /* Adjust padding for better visual alignment */
+                font-size: 1em;
+                cursor: text; /* Indicate it's a text input, not just a click area */
+            }
+
+            .custom-select-trigger:hover {
+                border-color: #999;
+            }
+
+            .custom-select-trigger span {
+                flex-grow: 1;
+            }
+
+            .custom-select-trigger .arrow {
+                margin-left: 0;
+                border: solid black;
+                border-width: 0 2px 2px 0;
+                display: inline-block;
+                padding: 3px;
+                transform: rotate(45deg);
+                -webkit-transform: rotate(45deg);
+                transition: transform 0.3s ease;
+            }
+
+            .custom-select-trigger.active .arrow {
+                transform: rotate(-135deg);
+                -webkit-transform: rotate(-135deg);
+            }
+
+            .custom-select-trigger .ui-igcombo-button {
+                position: absolute;
+                bottom: 0;
+                right: 0;
+                box-sizing: border-box;
+                border: 1px solid #bcbcbc !important;
+                background-color: #e8e8e8;
+            }
+
+            .custom-select-trigger .ui-icon-triangle-1-s {
+                position: relative;
+            }
+
+            .custom-select-trigger.active .ui-igcombo-button {
+                background-color: #a8d6e1;
+                border-color: #4897AA;
+            }
+
+        .custom-select-dropdown .filter-input {
+            display: none;
+        }
+
+        .custom-select-dropdown {
+            position: absolute;
+            width: 100%; /* Match the trigger width */
+            border: 1px solid #ccc;
+            /* border-radius: 5px;
+            padding: 10px; */
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            background-color: #fff;
+            z-index: 1000; /* Ensure it appears above other content */
+            display: none; /* Hidden by default */
+        }
+
+        /* Existing styles adjusted */
+        .filter-input {
+            width: calc(100% - 22px);
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+
+        .select-all-container {
+            margin-bottom: 10px;
+            margin-left: 10px;
+            margin-top: 10px;
+            /* padding-bottom: 5px;
+            border-bottom: 1px solid #eee; */
+        }
+
+            .select-all-container label {
+                font-weight: bold;
+            }
+
+        .item-list {
+            max-height: 350px;
+            overflow-y: auto;
+            /* border: 1px solid #eee;
+            border-radius: 3px;
+            padding: 5px; */
+            list-style: none;
+            margin: 0;
+        }
+
+            .item-list li {
+                padding: 8px;
+                background-color: #f9f9f9;
+                /* margin-bottom: 3px; */
+                border: 1px solid #e0e0e0;
+                /* border-radius: 3px; */
+                cursor: grab;
+                display: flex;
+                align-items: center;
+            }
+
+                .item-list li.ui-sortable-helper {
+                    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+                }
+
+                .item-list li:hover {
+                    background-color: #e9e9e9;
+                }
+
+            .item-list input[type="checkbox"] {
+                margin-right: 10px;
+            }
+
+        /* #sltIdentification .item-list li:first-child { 
+        #sltIdentification .item-list li:nth-child(1),
+        #sltIdentification .item-list li:nth-child(2) {
+            cursor: default; 
+            background-color: #e6e6e6; 
+        }
+
+            #sltIdentification .item-list li:nth-child(1):hover,
+            #sltIdentification .item-list li:nth-child(2):hover {
+                background-color: #e6e6e6; /* Keep same background on hover
+                    }*/
+        /* For Export-Dropdowns End */
+
+
+        /* For Export-Grid */
+        .ui-iggrid-indicatorcontainer .ui-iggrid-featurechooserbutton {
+            display: none !important;
+        }
+
+        #page-loader {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            z-index: 9999;
+            text-align: center;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .spinner {
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #3498db;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @@keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 18px;
+            color: #333;
+        }
+        /* For Export-Grid Ends */
 
 
         /* For Imports */
@@ -245,7 +457,6 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            margin-top: 20px;
         }
             .btn-Save:hover {
                 background-color: #3c8f42;

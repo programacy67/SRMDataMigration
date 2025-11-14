@@ -20,13 +20,15 @@ namespace SRMDataMigrationIgnite.Controllers
         private readonly IRiskRegistersService _iRiskRegistersService;
         private readonly IDMExportViewEntitiesService _iDMExportViewEntitiesService;
         private readonly IDMImportConfig _iDMImportConfig;
+        private readonly ILogger<ImportController> _logger;
 
         public ImportController(DataSanitizer sanitizer, IRiskRegistersService riskRegistersService, IDMExportViewEntitiesService dmExportViewEntitiesService,
-            IDMImportConfig iDMImportConfig)
+            IDMImportConfig iDMImportConfig, ILogger<ImportController> logger)
         {
             _iRiskRegistersService = riskRegistersService;
             _iDMExportViewEntitiesService = dmExportViewEntitiesService;
             _iDMImportConfig = iDMImportConfig;
+            _logger = logger;
         }
 
         public async Task<IActionResult> Index()

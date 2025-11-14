@@ -1,59 +1,922 @@
 ﻿@using System.Data
+@using static SRMDataMigrationIgnite.Services.Repositories.DMExportViewEntitiesService
 @{
     ViewData["Title"] = "Export Risks";
     var columnsJson = ViewData["Columns"];
     var dataJson = ViewData["Data"];
-    var ColumnsToShow = ViewData["ColumnsToShow"];
-    var ColumnsToHide = ViewData["ColumnsToHide"];
+    var ColumnsToShow = ViewData["ColumnsToShow"] as List<string>;
+    var ColumnsToHide = ViewData["ColumnsToHide"] as List<string?>;
+    ColumnsToHide ??= new List<string?>();
     var ColumnsToView = ViewData["ViewEntities"];
-    var IdentificationCategory = ViewData["IdentificationCategory"];
-    var SourceCategory = ViewData["SourceCategory"];
-    var ActionsCategory = ViewData["ActionsCategory"] ;
-    var ControlsCategory = ViewData["ControlsCategory"];
-    var ImpactCategory = ViewData["ImpactCategory"];
+    var IdentificationCategory = ViewData["IdentificationCategory"] as List<ViewEntityCategoryData>;
+    var SourceCategory = ViewData["SourceCategory"] as List<ViewEntityCategoryData>;
+    var ActionsCategory = ViewData["ActionsCategory"] as List<ViewEntityCategoryData>;
+    var ControlsCategory = ViewData["ControlsCategory"] as List<ViewEntityCategoryData>;
+    var ImpactCategory = ViewData["ImpactCategory"] as List<ViewEntityCategoryData>;
 }
 
 <form id="frmRiskRegisters" asp-action="Index" method="post">
-    <h2>Risks - Export</h2>
+    @* <div id="page-loader">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading...</div>
+    </div> *@
 
-    <div>
-        <div id="sltIdentification"></div>
-        <div id="sltSource"></div>
-        <div id="sltImpact"></div>
-        <div id="sltActions"></div>
-        <div id="sltControls"></div>
+    <h2>Risks - Export</h2>
+    <div class="parent-div">
+        <div class="parent-wrapper">
+        Risk Identification <br />
+        <div class="custom-select-wrapper" id="sltIdentification">
+            <div class="custom-select-trigger">
+                <input type="text" class="filter-input-in-trigger" placeholder="Select Identification">
+                <div class="ui-igcombo-button ui-state-default ui-unselectable ui-igcombo-button-ltr ui-corner-right">
+                    <div class="ui-igcombo-buttonicon ui-icon-triangle-1-s ui-icon"></div>
+                </div>
+            </div>
+
+            <div class="custom-select-dropdown">
+                @* <input type="text" class="filter-input" placeholder="Filter items..."> *@
+
+                <div class="select-all-container">
+                    <input type="checkbox" id="select-all">
+                    <label for="select-all">Select All</label>
+                </div>
+
+                <ul class="item-list">
+                    @if (ColumnsToShow != null)
+                    {
+                        @foreach (var cat in IdentificationCategory)
+                        {
+                            <li data-value="@cat.Title">
+                                <input type="checkbox" value="@cat.Title"
+                                    @(ColumnsToShow.Contains(cat.Title) ? "checked" : "") 
+                                    @(cat.IsMandatory.ToString().ToLower().Equals("true") ? "disabled" : "")> @cat.Title
+                            </li>
+                        }
+                    }
+                    else
+                    {
+                        @foreach (var cat in IdentificationCategory)
+                        {
+                            <li data-value="@cat.Title">
+                                <input type="checkbox" value="@cat.Title" checked
+                                       @(cat.IsMandatory.ToString().ToLower().Equals("true") ? "disabled" : "")> @cat.Title
+                            </li>
+                        }
+                    }
+                </ul>
+            </div>
+        </div>
+        </div>
+
+        <div class="parent-wrapper">
+            Risk Actions <br />
+            <div class="custom-select-wrapper" id="sltActions">
+                <div class="custom-select-trigger">
+                    <input type="text" class="filter-input-in-trigger" placeholder="Select Actions">
+                    <div class="ui-igcombo-button ui-state-default ui-unselectable ui-igcombo-button-ltr ui-corner-right">
+                        <div class="ui-igcombo-buttonicon ui-icon-triangle-1-s ui-icon"></div>
+                    </div>
+                </div>
+
+                <div class="custom-select-dropdown">
+                    @* <input type="text" class="filter-input" placeholder="Filter items..."> *@
+
+                    <div class="select-all-container">
+                        <input type="checkbox" id="select-all">
+                        <label for="select-all">Select All</label>
+                    </div>
+
+                    <ul class="item-list">
+                        @if (ColumnsToShow != null)
+                        {
+                            @foreach (var cat in ActionsCategory)
+                            {
+                                <li data-value="@cat.Title">
+                                    <input type="checkbox" value="@cat.Title"
+                                           @(ColumnsToShow.Contains(cat.Title) ? "checked" : "")
+                                           @(cat.IsMandatory.ToString().ToLower().Equals("true") ? "disabled" : "")> @cat.Title
+                                </li>
+                            }
+                        }
+                        else
+                        {
+                            @foreach (var cat in ActionsCategory)
+                            {
+                                <li data-value="@cat.Title">
+                                    <input type="checkbox" value="@cat.Title" checked
+                                           @(cat.IsMandatory.ToString().ToLower().Equals("true") ? "disabled" : "")> @cat.Title
+                                </li>
+                            }
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="parent-wrapper">
+            Risk Source <br />
+        <div class="custom-select-wrapper" id="sltSource">
+            <div class="custom-select-trigger">
+                <input type="text" class="filter-input-in-trigger" placeholder="Select Source">
+                <div class="ui-igcombo-button ui-state-default ui-unselectable ui-igcombo-button-ltr ui-corner-right">
+                    <div class="ui-igcombo-buttonicon ui-icon-triangle-1-s ui-icon"></div>
+                </div>
+            </div>
+
+            <div class="custom-select-dropdown">
+                @* <input type="text" class="filter-input" placeholder="Filter items..."> *@
+
+                <div class="select-all-container">
+                    <input type="checkbox" id="select-all">
+                    <label for="select-all">Select All</label>
+                </div>
+
+                <ul class="item-list">
+                    @if (ColumnsToShow != null)
+                    {
+                        @foreach (var cat in SourceCategory)
+                        {
+                            <li data-value="@cat.Title">
+                                <input type="checkbox" value="@cat.Title"
+                                       @(ColumnsToShow.Contains(cat.Title) ? "checked" : "")
+                                       @(cat.IsMandatory.ToString().ToLower().Equals("true") ? "disabled" : "")> @cat.Title
+                            </li>
+                        }
+                    }
+                    else
+                    {
+                        @foreach (var cat in SourceCategory)
+                        {
+                            <li data-value="@cat.Title">
+                                <input type="checkbox" value="@cat.Title" checked
+                                       @(cat.IsMandatory.ToString().ToLower().Equals("true") ? "disabled" : "")> @cat.Title
+                            </li>
+                        }
+                    }
+                </ul>
+            </div>
+        </div>
+        </div>
+
+        <div class="parent-wrapper">
+            Risk Impact <br />
+        <div class="custom-select-wrapper" id="sltImpact">
+            <div class="custom-select-trigger">
+                <input type="text" class="filter-input-in-trigger" placeholder="Select Impact">
+                <div class="ui-igcombo-button ui-state-default ui-unselectable ui-igcombo-button-ltr ui-corner-right">
+                    <div class="ui-igcombo-buttonicon ui-icon-triangle-1-s ui-icon"></div>
+                </div>
+            </div>
+
+            <div class="custom-select-dropdown">
+                @* <input type="text" class="filter-input" placeholder="Filter items..."> *@
+
+                <div class="select-all-container">
+                    <input type="checkbox" id="select-all">
+                    <label for="select-all">Select All</label>
+                </div>
+
+                <ul class="item-list">
+                    @if (ColumnsToShow != null)
+                    {
+                        @foreach (var cat in ImpactCategory)
+                        {
+                            <li data-value="@cat.Title">
+                                <input type="checkbox" value="@cat.Title"
+                                       @(ColumnsToShow.Contains(cat.Title) ? "checked" : "")
+                                       @(cat.IsMandatory.ToString().ToLower().Equals("true") ? "disabled" : "")> @cat.Title
+                            </li>
+                        }
+                    }
+                    else
+                    {
+                        @foreach (var cat in ImpactCategory)
+                        {
+                            <li data-value="@cat.Title">
+                                <input type="checkbox" value="@cat.Title" checked
+                                       @(cat.IsMandatory.ToString().ToLower().Equals("true") ? "disabled" : "")> @cat.Title
+                            </li>
+                        }
+                    }
+                </ul>
+            </div>
+        </div>
+        </div>
+
+        <div class="parent-wrapper">
+            Risk Controls <br />
+            <div class="custom-select-wrapper" id="sltControls">
+                <div class="custom-select-trigger">
+                    <input type="text" class="filter-input-in-trigger" placeholder="Select Controls">
+                    <div class="ui-igcombo-button ui-state-default ui-unselectable ui-igcombo-button-ltr ui-corner-right">
+                        <div class="ui-igcombo-buttonicon ui-icon-triangle-1-s ui-icon"></div>
+                    </div>
+                </div>
+
+                <div class="custom-select-dropdown">
+                    @* <input type="text" class="filter-input" placeholder="Filter items..."> *@
+
+                    <div class="select-all-container">
+                        <input type="checkbox" id="select-all">
+                        <label for="select-all">Select All</label>
+                    </div>
+
+                    <ul class="item-list">
+                        @if (ColumnsToShow != null)
+                        {
+                            @foreach (var cat in ControlsCategory)
+                            {
+                                <li data-value="@cat.Title">
+                                    <input type="checkbox" value="@cat.Title"
+                                           @(ColumnsToShow.Contains(cat.Title) ? "checked" : "")
+                                           @(cat.IsMandatory.ToString().ToLower().Equals("true") ? "disabled" : "")> @cat.Title
+                                </li>
+                            }
+                        }
+                        else
+                        {
+                            @foreach (var cat in ControlsCategory)
+                            {
+                                <li data-value="@cat.Title">
+                                    <input type="checkbox" value="@cat.Title" checked
+                                           @(cat.IsMandatory.ToString().ToLower().Equals("true") ? "disabled" : "")> @cat.Title
+                                </li>
+                            }
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div>
+
+    <div class="parent-div">
         <div id="sltView"></div>
         <input type="hidden" id="hfViewName" name="hfViewName" />
         <input id="txtViewName" type="text" name="viewname" />
 
-        <button id="btnSave" class="btn-Save">Save/Edit View</button>
-        <button id="btnDelete" class="btn-Delete">Delete View</button>
-        <button id="btnExportExcel" class="btn-Save">Export To Excel</button>
+        <div class="right-div">
+            <button id="btnSave" class="btn-Save">Save/Edit View</button>
+            <button id="btnDelete" class="btn-Save">Delete View</button>
+            <button id="btnExportExcel" class="btn-Save">Export To Excel</button>
+        </div>
     </div>
 
-    <table id="grid"></table>
+    <div class="grid-container">
+        <table id="grid"></table>
+    </div>
 </form>
 
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        var selected = '@ViewData["ViewName"]';
-        if (selected) {
-            $("#sltView").igCombo("value", selected);
-        }
-    });
+<style>
+    /* Reset and base styles */
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
 
-    $(function () {
-        var ColumnsToShowInDropdown = @Html.Raw(ColumnsToShow);        
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background-color: #f5f5f5;
+        padding: 20px;
+    }
+
+    .content {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+        color: #333;
+        margin-bottom: 30px;
+        font-weight: 400;
+    }
+
+    /* Combo box container */
+    .custom-combo {
+        position: relative;
+        width: 100%;
+        max-width: 400px;
+    }
+
+    /* Input field */
+    .combo-input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+        background: white;
+        cursor: text;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+
+        .combo-input:focus {
+            border-color: #007acc;
+            box-shadow: 0 0 0 2px rgba(0,122,204,0.2);
+        }
+
+        .combo-input::placeholder {
+            color: #999;
+        }
+
+    /* Dropdown arrow */
+    .combo-arrow {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #666;
+        pointer-events: none;
+        transition: transform 0.2s;
+    }
+
+    .custom-combo.open .combo-arrow {
+        transform: translateY(-50%) rotate(180deg);
+    }
+
+    /* Dropdown container */
+    .combo-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ccc;
+        border-top: none;
+        border-radius: 0 0 4px 4px;
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .custom-combo.open .combo-dropdown {
+        display: block;
+    }
+
+    /* Dropdown item */
+    .combo-item {
+        display: flex;
+        align-items: center;
+        padding: 10px 16px;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background-color 0.2s;
+    }
+
+        .combo-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .combo-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Drag and drop styles */
+        .combo-item.dragging {
+            opacity: 0.5;
+            transform: rotate(2deg);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .combo-item.drag-over {
+            background-color: #e3f2fd;
+            border-top: 2px solid #007acc;
+        }
+
+        .combo-item.selected {
+            background-color: #fff3cd;
+        }
+
+            .combo-item.selected:hover {
+                background-color: #ffeaa7;
+            }
+
+    /* Checkbox styling */
+    .combo-checkbox {
+        width: 16px;
+        height: 16px;
+        margin-right: 12px;
+        border: 1px solid #ccc;
+        border-radius: 2px;
+        background: white;
+        cursor: pointer;
+        position: relative;
+        flex-shrink: 0;
+    }
+
+        .combo-checkbox.checked {
+            background-color: #007acc;
+            border-color: #007acc;
+        }
+
+            .combo-checkbox.checked::after {
+                content: '✓';
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: white;
+                font-size: 12px;
+                font-weight: bold;
+            }
+
+    /* Item text */
+    .combo-item-text {
+        flex: 1;
+        font-size: 14px;
+        color: #333;
+    }
+
+
+    /* No results */
+    .no-results {
+        padding: 16px;
+        text-align: center;
+        color: #666;
+        font-style: italic;
+    }
+
+    /* Loading state */
+    .combo-loading {
+        padding: 16px;
+        text-align: center;
+        color: #666;
+    }
+</style>
+
+<script>
+    let newIndex = -1;
+    let draggedItemInitialIndex = -1;
+    let draggedItemValue = '';
+    let targetItemValue = null;
+    let targetItemIndex = -1;
+    let isAfterTargetItem = false;
+
+    function initializeCustomMultiSelect($wrapperElement) {
+        const $trigger = $wrapperElement.find('.custom-select-trigger');
+        const $dropdown = $wrapperElement.find('.custom-select-dropdown');
+        const $filterInputInTrigger = $trigger.find('.filter-input-in-trigger');
+        // const $filterInput = $dropdown.find('.filter-input');
+        const $selectAllCheckbox = $dropdown.find('#select-all');
+        const $itemList = $dropdown.find('.item-list');
+
+
+        // Toggle dropdown visibility on trigger click
+        $trigger.on('click', function(event) {
+            // Prevent trigger click from propagating if the click originated from the filter input
+            if ($(event.target).is($filterInputInTrigger)) {
+                // Only open if not already open, but don't close if already open and clicking input
+                if (!$dropdown.is(':visible')) {
+                    $dropdown.slideDown(150, function() {
+                        $trigger.addClass('active');
+                        $filterInputInTrigger.focus();
+                    });
+                }
+                return; // Exit to prevent dropdown from closing immediately
+            }
+
+            $dropdown.slideToggle(150, function() {
+                $trigger.toggleClass('active', $dropdown.is(':visible'));
+                if ($dropdown.is(':visible')) {
+                    $filterInputInTrigger.focus();
+                } else {
+                    $filterInputInTrigger.val('');
+                    $itemList.find('li').show();
+                    // updateSelectAllCheckbox();
+                }
+                updateSelectAllCheckbox($(this).closest('.custom-select-wrapper'));
+            });
+        });
+
+        // Close dropdown when clicking outside
+        $(document).on('click', function(event) {
+            // Check if the click was outside THIS specific wrapper AND the dropdown is visible
+            if (!$wrapperElement.is(event.target) && $wrapperElement.has(event.target).length === 0) {
+                if ($dropdown.is(':visible')) {
+                    $dropdown.slideUp(150, function() {
+                        $trigger.removeClass('active');
+                        $filterInputInTrigger.val('');
+                        $itemList.find('li').show();
+                        updateSelectAllCheckbox();
+                        $trigger.focus();
+                    });
+                }
+            }
+        });
+
+        // 1. Filtering Functionality
+        $filterInputInTrigger.on('keyup', function() {
+            const searchText = $(this).val().toLowerCase();
+            $itemList.find('li').each(function() {
+                const itemText = $(this).text().toLowerCase();
+                if (itemText.includes(searchText)) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
+            // updateSelectAllCheckbox($(this).closest('.custom-select-wrapper'));
+        });
+
+        // Prevent trigger's click event from firing when clicking directly on the filter input inside it
+        $filterInputInTrigger.on('click', function(event) {
+            // event.stopPropagation();
+            $trigger.trigger('click');
+        });
+
+        // 2. Select All Checkbox Functionality
+        $selectAllCheckbox.on('change', function() {
+            const isChecked = $(this).is(':checked');
+            $itemList.find('li:visible input[type="checkbox"]:not(:disabled)').prop('checked', isChecked);
+            let selectedValue = [];
+            $itemList.find('li:visible input[type="checkbox"]:not(:disabled)').each(function() {
+                const itemCheckbox = $(this);
+                const listItem = itemCheckbox.closest('li');
+                const itemValue = listItem.data('value');
+                const itemCheckedState = itemCheckbox.is(':checked');
+                selectedValue.push(itemValue);
+                // console.log(`Dropdown [${$wrapperElement.attr('id') || $trigger.find('span').text()}] Select All action: Item Value: "${itemValue}" is now ${itemCheckedState ? 'CHECKED' : 'UNCHECKED'}`);
+            });
+            showHideGridColumns(selectedValue, isChecked);
+            updateSelectAllCheckbox($(this).closest('.custom-select-wrapper'));
+            includeDisabledItem($(this).closest('.custom-select-wrapper'));
+        });
+
+        // Handle clicks on the entire list item (<li>) to toggle the checkbox
+        $itemList.on('click', 'li', function(event) {
+            const listItem = $(this);
+            const itemCheckbox = listItem.find('input[type="checkbox"]');
+
+            if (itemCheckbox.prop('disabled')) {
+                if ($(event.target).is('input[type="checkbox"]')) {
+                    event.stopPropagation();
+                }
+                return;
+            }
+
+            if ($(event.target).is('input[type="checkbox"]')) {
+                itemCheckbox.trigger('change');                
+                return;
+            }
+
+            const newState = !itemCheckbox.is(':checked');
+            itemCheckbox.prop('checked', newState);
+            itemCheckbox.trigger('change');
+
+            const itemValue = listItem.data('value');
+            showHideGridColumns(itemValue, newState)
+            // console.log(`Dropdown [${$wrapperElement.attr('id') || $trigger.find('span').text()}] List item click: Item Value: "${itemValue}" is now ${newState ? 'CHECKED' : 'UNCHECKED'}`);
+
+            includeDisabledItem($(this).closest('.custom-select-wrapper'));
+        });
+
+        $itemList.on('change', 'input[type="checkbox"]', function() {
+            if ($(this).prop('disabled')) return;
+            let isChecked = $(this).prop('checked');
+            let itemValue = $(this).val();
+            showHideGridColumns(itemValue, isChecked)
+            includeDisabledItem($(this).closest('.custom-select-wrapper'));
+            updateSelectAllCheckbox($(this).closest('.custom-select-wrapper'));
+        });
+
+        // updateSelectAllCheckbox();
+
+        // 3. Drag and Drop Functionality (using jQuery UI Sortable)
+        let sortableOptions = {
+            axis: 'y',
+            containment: false,
+            cursor: 'grab',
+            start: function(event, ui) {
+                const draggedItem = ui.item;
+                draggedItemValue = draggedItem.data('value');
+                draggedItemInitialIndex = draggedItem.index();
+                // console.log(`Dropdown [${$wrapperElement.attr('id') || $trigger.find('span').text()}] DRAG START: Item "${draggedItemValue}" (initial index: ${draggedItemInitialIndex})`);
+            },
+            stop: function(event, ui) {
+                newIndex = ui.item.index();
+                // console.log(`Dropdown [${$wrapperElement.attr('id') || $trigger.find('span').text()}] DRAG STOP: Item "${draggedItemValue}" moved from index ${draggedItemInitialIndex} to index ${newIndex}`);
+
+                // let targetItemValue = null;
+                // let targetItemIndex = -1;
+
+                if (newIndex > 0) {
+                    const $prevItem = $itemList.find('li').eq(newIndex - 1);
+                    targetItemValue = $prevItem.data('value');
+                    targetItemIndex = newIndex - 1;
+                    isAfterTargetItem = true;
+                    // console.log(`Dropdown [${$wrapperElement.attr('id') || $trigger.find('span').text()}] Dropped BELOW target item: "${targetItemValue}" (index: ${targetItemIndex})`);
+                } else {
+                    if ($itemList.find('li').length > 1) {
+                        const $nextItem = $itemList.find('li').eq(newIndex + 1);
+                        targetItemValue = $nextItem.data('value');
+                        targetItemIndex = newIndex + 1;
+                        isAfterTargetItem = false;
+                        // console.log(`Dropdown [${$wrapperElement.attr('id') || $trigger.find('span').text()}] Dropped ABOVE target item: "${targetItemValue}" (index: ${targetItemIndex})`);
+                    } 
+                    // else {
+                    //     console.log(`Dropdown [${$wrapperElement.attr('id') || $trigger.find('span').text()}] Dropped at the top of an empty or single-item list.`);
+                    // }
+                }
+                if (draggedItemInitialIndex != newIndex)
+                    moveGridColumns(draggedItemValue, targetItemValue, isAfterTargetItem);
+                // console.log(`Dropdown [${$wrapperElement.attr('id') || $trigger.find('span').text()}] Source Item Value: "${draggedItemValue}", Target Item Value (dropped next to): "${targetItemValue}"`);
+
+                draggedItemInitialIndex = -1;
+                draggedItemValue = '';
+            },
+            // update: function(event, ui) {
+            //     console.log(`--- Dropdown [${$wrapperElement.attr('id') || $trigger.find('span').text()}] FINAL ORDER (from update event) ---`);
+            //     $(this).find('li').each(function(index) {
+            //         const itemValue = $(this).data('value');
+            //         console.log(`- Value: "${itemValue}" is now at index: ${index}`);
+            //     });
+            //     const newOrder = $(this).sortable('toArray', { attribute: 'data-value' });
+            //     console.log(`New order by data-value for Dropdown [${$wrapperElement.attr('id') || $trigger.find('span').text()}]:`, newOrder);
+            // }
+        }
+        
+        // if ($wrapperElement.attr('id') === 'sltIdentification') {
+        //     // Exclude the first list item from being sortable
+        //     sortableOptions.items = 'li:gt(1)';
+        // }
+
+        $itemList.sortable(sortableOptions).disableSelection();
+    }
+
+    var IdentificationCategory = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(IdentificationCategory));
+    var SourceCategory = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(SourceCategory));
+    var ImpactCategory = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ImpactCategory));
+    var ActionsCategory = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ActionsCategory));
+    var ControlsCategory = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ControlsCategory));
+    var mandatoryColumns = IdentificationCategory.filter(i => i.IsMandatory === true).map(i => i.Title); 
+
+    function includeDisabledItem($container) {
+        var containerId = $container.attr('id');
+        var selectedColumns = getSelectedItems(containerId);
+        var comboColumns = mandatoryColumns;
+        var mandatoryColumns = [];
+        var flag = true;
+        switch (containerId) {
+            case 'sltSource':
+                mandatoryColumns = SourceCategory.filter(i => i.IsMandatory === true).map(i => i.Title);
+                break;
+            case 'sltImpact':
+                mandatoryColumns = ImpactCategory.filter(i => i.IsMandatory === true).map(i => i.Title);
+                break;
+            case 'sltActions':
+                mandatoryColumns = ActionsCategory.filter(i => i.IsMandatory === true).map(i => i.Title);
+                break;
+            case 'sltControls':
+                mandatoryColumns = ControlsCategory.filter(i => i.IsMandatory === true).map(i => i.Title);
+                break;
+            default:
+                break;
+        }
+
+        if (JSON.stringify(mandatoryColumns) === JSON.stringify(selectedColumns)) flag = false;
+
+        switch (containerId) {
+            case 'sltSource':
+                comboColumns = SourceCategory.filter(i => i.IsMandatory === true).map(i => i.Title);
+                if (flag)
+                    $.merge(comboColumns, selectedColumns);
+                break;
+            case 'sltImpact':
+                comboColumns = ImpactCategory.filter(i => i.IsMandatory === true).map(i => i.Title);
+                if (flag)
+                    $.merge(comboColumns, selectedColumns);
+                break;
+            case 'sltActions':
+                comboColumns = ActionsCategory.filter(i => i.IsMandatory === true).map(i => i.Title);
+                if (flag)
+                    $.merge(comboColumns, selectedColumns);
+                break;
+            case 'sltControls':
+                comboColumns = ControlsCategory.filter(i => i.IsMandatory === true).map(i => i.Title);
+                if (flag)
+                    $.merge(comboColumns, selectedColumns);
+                break;
+            default:
+                break;
+        }
+        var grid = $("#grid");
+        if (flag) {
+            setItemsSelected(containerId, comboColumns);
+            $.each(comboColumns, function(index, value) {
+                grid.igGridHiding("showColumn", value);
+            });
+
+        }
+        else {
+            setItemsDeselected(containerId, comboColumns);
+            $.each(comboColumns, function(index, value) {
+                grid.igGridHiding("hideColumn", value);
+            });
+        }
+        updateSelectAllCheckbox($container);
+    }
+
+    function showHideGridColumns(columnName, state) {
+        var grid = $("#grid");
+        var gridColumns = $("#grid").igGrid("option", "columns");
+        var newColumnState = !state;
+       
+        if (jQuery.isArray(columnName)) {
+            columnName.forEach(function (cn) {
+                var col = gridColumns.find(c => c.key === cn);
+                if (col) {
+                    col.hidden = newColumnState;
+                }
+            });
+            // fixGridColumns(gridColumns);
+            $("#grid").igGrid("option", "columns", gridColumns);
+
+            // grid.igGridHiding("showMultiColumns", columnName);
+            // grid.igGridHiding("hideMultiColumns", columnName);
+        }
+        else {
+            if (state)
+                grid.igGridHiding("showColumn", columnName);
+            else
+                grid.igGridHiding("hideColumn", columnName);
+        }  
+    }
+
+    function moveGridColumns(sourceColumn, targetColumn, isAfterTarget) {
+        var grid = $("#grid");
+        grid.igGrid("moveColumn", sourceColumn, targetColumn, isAfterTarget, true);
+    }
+
+    function fixGridColumns(gridColumns) {
+        var gridShownColumns = gridColumns.filter(c => !c.hidden).map(c => c.key);
+        if (gridShownColumns.includes("Project"))
+            $("#grid").igGridColumnFixing("fixColumn", "Project");
+        else
+            $("#grid").igGridColumnFixing("unfixColumn", "Project");
+
+        if (gridShownColumns.includes("Title"))
+            $("#grid").igGridColumnFixing("fixColumn", "Title");
+        else
+            $("#grid").igGridColumnFixing("unfixColumn", "Title");
+    }
+
+    function updateSelectAllCheckbox($container) {
+        if ($container != null) {
+            const $selectAllCheckbox = $container.find('#select-all');
+            // const $filterInputInTrigger = $container.find('.filter-input-in-trigger');
+            const $itemList = $container.find('.item-list');
+            const totalSelectableVisibleCheckboxes = $itemList.find('li:visible input[type="checkbox"]:not(:disabled)').length;
+            const checkedSelectableVisibleCheckboxes = $itemList.find('li:visible input[type="checkbox"]:checked:not(:disabled)').length;
+
+            if (totalSelectableVisibleCheckboxes === 0) {
+                $selectAllCheckbox.prop('checked', false).prop('indeterminate', false);
+            } else if (checkedSelectableVisibleCheckboxes === 0) {
+                $selectAllCheckbox.prop('checked', false).prop('indeterminate', false);
+            } else if (checkedSelectableVisibleCheckboxes === totalSelectableVisibleCheckboxes) {
+                $selectAllCheckbox.prop('checked', true).prop('indeterminate', false);
+            } else {
+                $selectAllCheckbox.prop('checked', false).prop('indeterminate', true);
+            }
+        }
+    }
+
+    function getSelectedItems(containerId) {
+        const $container = $('#' + containerId);
+        if ($container.length === 0) {
+            console.warn(`Container with ID "${containerId}" not found for getSelectedItems.`);
+            return []; // Return empty array if container doesn't exist
+        }
+
+        const selectedValues = [];
+        // Find all checkboxes within this specific container's item-list that are checked
+        $container.find('.item-list input[type="checkbox"]:checked').each(function() {
+            // The value attribute of the checkbox is the item's value
+            selectedValues.push($(this).val());
+        });
+        return selectedValues;
+    }
+
+    function setItemsSelected(containerId, selectedValuesArray) {
+        const $container = $('#' + containerId);
+        if ($container.length === 0) {
+            console.warn(`Container with ID "${containerId}" not found for setItemsSelected.`);
+            return;
+        }
+        const $itemList = $container.find('.item-list');
+        if ($itemList.length === 0) {
+            console.warn(`Item list not found within container ID "${containerId}".`);
+            return;
+        }
+
+        const valuesToSelect = new Set(selectedValuesArray);
+
+        $itemList.find('li').each(function() {
+            const listItem = $(this);
+            const itemCheckbox = listItem.find('input[type="checkbox"]');
+            const itemValue = listItem.data('value');
+
+            // if (itemCheckbox.prop('disabled')) {
+            //     return;
+            // }
+
+            const shouldBeChecked = valuesToSelect.has(itemValue);
+
+            if (shouldBeChecked && !itemCheckbox.is(':checked')) {
+                itemCheckbox.prop('checked', true).trigger('change');
+            }
+            // else if (!shouldBeChecked && itemCheckbox.is(':checked')) {
+            //     itemCheckbox.prop('checked', false).trigger('change');
+            // }
+        });
+
+        // We need to update the specific container's state
+        updateSelectAllCheckbox($container); // New helper function needed
+    }
+
+    function setItemsDeselected(containerId, valuesToDeselectArray) {
+        const $container = $('#' + containerId);
+        if ($container.length === 0) {
+            console.warn(`Container with ID "${containerId}" not found for setItemsDeselected.`);
+            return;
+        }
+        const $itemList = $container.find('.item-list');
+        if ($itemList.length === 0) {
+            console.warn(`Item list not found within container ID "${containerId}".`);
+            return;
+        }
+
+        const valuesSetToDeselect = new Set(valuesToDeselectArray);
+
+        $itemList.find('li').each(function() {
+            const listItem = $(this);
+            const itemCheckbox = listItem.find('input[type="checkbox"]');
+            const itemValue = listItem.data('value');
+
+            // if (itemCheckbox.prop('disabled')) {
+            //     return;
+            // }
+
+            const shouldBeDeselected = valuesSetToDeselect.has(itemValue);
+
+            if (shouldBeDeselected && itemCheckbox.is(':checked')) {
+                itemCheckbox.prop('checked', false).trigger('change');
+            }
+        });
+
+        // We need to update the specific container's state
+        updateSelectAllCheckbox($container); // New helper function needed
+    }
+
+    function reorderItem(containerId, itemValueToMove, targetItemValue, isAfter) {
+        const $container = $('#' + containerId);
+        if ($container.length === 0) {
+            // console.warn(`Container with ID "${containerId}" not found for reorderItem.`);
+            return;
+        }
+        const $itemList = $container.find('.item-list');
+        const $itemToMove = $itemList.find(`li[data-value="${itemValueToMove}"]`);
+        const $targetItem = $itemList.find(`li[data-value="${targetItemValue}"]`);
+
+        if ($itemToMove.length === 0) {
+            // console.warn(`Item with value "${itemValueToMove}" not found in container "${containerId}".`);
+            return;
+        }
+        if ($targetItem.length === 0) {
+            // console.warn(`Target item with value "${targetItemValue}" not found in container "${containerId}".`);
+            return;
+        }
+
+        if ($itemToMove[0] === $targetItem[0]) {
+            // console.log(`Item "${itemValueToMove}" is the target item. No reorder needed.`);
+            return;
+        }
+
+        if (isAfter) {
+            $targetItem.after($itemToMove);
+            // console.log(`Reordered "${itemValueToMove}" after "${targetItemValue}" in "${containerId}".`);
+        } else {
+            $targetItem.before($itemToMove);
+            // console.log(`Reordered "${itemValueToMove}" before "${targetItemValue}" in "${containerId}".`);
+        }
+    }
+
+    $(document).ready(function() {
+        var ColumnsToShowInDropdown = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ColumnsToShow));
         var ColumnsToViewInDropdown = @Html.Raw(ColumnsToView);
-        var colsToHideStr = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ColumnsToHide));
+        var colsToHideStr = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ColumnsToHide));               
 
         //Populate View Dropdown
         $("#sltView").igCombo({
             dataSource: ColumnsToViewInDropdown,
-            width: "250px",
+            width: "280px",
             textKey: "Title",
             valueKey: "ID",
             filteringType: "local",
@@ -74,12 +937,16 @@
             }
         });
 
-
+        var selected = '@ViewData["ViewName"]';
+        if (selected) {
+            $("#sltView").igCombo("value", selected);
+        }
 
 
         //Populate Grid
         var columns = @Html.Raw(columnsJson);
         var data = @Html.Raw(dataJson);
+        let targetColumnKey = '';
         $("#grid").igGrid({
             width: "100%",
             height: "500px",
@@ -95,657 +962,87 @@
                 { name: "Sorting", type: "local" },
                 { name: "Filtering", type: "local" },
                 { name: "Paging", type: "local", pageSize: 50, pageSizeList: [50, 75, 100, 150, 200, "All"] },
-                { name: "ColumnMoving" },
-                { name: "Resizing" },
+                { name: "ColumnMoving",
+                    columnMoving: function(evt, args) {
+                        let cols = $("#grid").igGrid("option", "columns");
+                        let columnCategory = columns.filter(c => c.key === args.columnKey).map(c => c.category);
+                        let minIndex = 0, maxIndex = 0, minVisibleIndex = 0, maxVisibleIndex = 0;
+                        let containerId = "";
+                        switch (columnCategory[0]) {
+                            case 'Risk Identification':
+                                containerId = 'sltIdentification';
+                                minIndex = 0;
+                                maxIndex = cols.filter(c => c.category === 'Risk Identification').length - 1;
+                                minVisibleIndex = 0;
+                                maxVisibleIndex = cols.filter(c => c.category === 'Risk Identification' && c.hidden === false).length - 1;
+                                break;
+                            case 'Risk Source':
+                                containerId = 'sltSource';
+                                break;
+                            case 'Risk Impact':
+                                containerId = 'sltImpact';
+                                break;
+                            case 'Risk Actions':
+                                containerId = 'sltActions';
+                                break;
+                            case 'Risk Controls':
+                                containerId = 'sltControls';
+                                break;
+                            default:
+                                break;
+                        }
+
+                        if((args.targetIndex >= minVisibleIndex && args.targetIndex <= maxVisibleIndex)  && containerId == 'sltIdentification') {                            
+                            targetColumnKey = cols.filter(c => c.category === 'Risk Identification' && c.hidden === false)[args.targetIndex].key;
+                            // console.log(`targetItemIndex is ${args.targetIndex} - ${targetColumnKey}`);
+                            return true;
+                        }
+                        else
+                            return false;
+                    },
+                    columnMoved: function(evt, args) {
+                        let columnCategory = columns.filter(c => c.key === args.columnKey).map(c => c.category);
+                        let containerId = "";
+                        switch (columnCategory[0]) {
+                            case 'Risk Identification':
+                                containerId = 'sltIdentification';                                
+                                break;
+                            case 'Risk Source':
+                                containerId = 'sltSource';
+                                break;
+                            case 'Risk Impact':
+                                containerId = 'sltImpact';
+                                break;
+                            case 'Risk Actions':
+                                containerId = 'sltActions';
+                                break;
+                            case 'Risk Controls':
+                                containerId = 'sltControls';
+                                break;
+                            default:
+                                break;
+                        }
+
+                        let isAfter = true;
+                        if ((args.newIndex - args.oldIndex) < 0) isAfter = false;
+                        reorderItem(containerId, args.columnKey, targetColumnKey, isAfter);
+                    }
+                },
+                { name: "Resizing", allowDoubleClickToResize: true },
                 { name: "Hiding" },
-            ],
-            dataRendered: function(evt, ui) {               
-                if(colsToHideStr != "[]") {
-                    var colsToHide = JSON.parse(colsToHideStr);
-                    $.each(colsToHide, function(index, value) {
-                        $("#grid").igGridHiding("hideColumn", value);
-                    });
-                }
-            }
+                { name: "ColumnFixing" }
+                //     columnSettings: [
+                //     { columnKey: "Project", isFixed: true },
+                //     { columnKey: "Title", isFixed: true }
+                // ]}
+            ]
         });
 
 
-        var IdentificationCategory = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(IdentificationCategory));
-        var SourceCategory = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(SourceCategory));
-        var ImpactCategory = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ImpactCategory));
-        var ActionsCategory = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ActionsCategory));
-        var ControlsCategory = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ControlsCategory));
-        var mandatoryColumns = IdentificationCategory.filter(i => i.IsMandatory === true).map(i => i.Title);
-        
-        let selectedValuesIdentification = [];
-        let isIdentificationChanged = false;
-        let suppressIdentificationSelectionChange = false;
-        //Populate Identification Combobox
-        $("#sltIdentification").igCombo({
-            dataSource: IdentificationCategory,
-            width: "250px",
-            textKey: "Title",
-            valueKey: "Title",
-            filteringType: "local",
-            filteringCondition: "contains",
-            highlightMatchesMode: "contains",            
-            dropDownOrientation: "bottom",
-            dropDownOnFocus: true,
-            enableClearButton: false,
-            closeDropDownOnBlur: true,
-            autoComplete: false,
-            autoSelectFirstMatch: false,
-            allowCustomValue: true,
-            locale: {
-                placeHolder: "Select Identification"
-            },
-            headerTemplate: "<div><input type='checkbox' class='igcombo-checkbox-toggle' id='selectAllIdentification'/> <label for='selectAllIdentification'>Select All</label></div>",
-            multiSelection: {
-                enabled: true,          
-                showCheckboxes: true,
-            },
-            itemsRendered: function (evt, ui) {
-                disableMandatoryItems("#sltIdentification", true);
-                checkIdentificationColumnsToShow();
-                ui.owner.element.find("input[type='text']").val('');
-            },
-            dropDownClosed: function (evt, ui) {
-                ui.owner.element.find("input[type='text']").val('');
-            },
-            dropDownOpened: function (evt, ui) {
-                if (isIdentificationChanged)
-                    $("#sltIdentification").igCombo("value", selectedValuesIdentification);
-                else
-                    checkIdentificationColumnsToShow();
-
-                ui.owner.element.find("input[type='text']").val('');
-                disableMandatoryItems("#sltIdentification");
-                ui.owner.listScrollTop(0);
-
-                // if (ui.owner.selectedItems()) {
-                //     var listHolder = ui.owner.dropDown().find(".ui-igcombo-listitemholder");
-                //     var selectedElemIndex = listHolder.children().index(ui.owner.selectedItems()[0].element)
-                //     var itemHeight = listHolder.height() / listHolder.children().length;
-                //     ui.owner.listScrollTop(selectedElemIndex * itemHeight);
-                // }
-            },
-            selectionChanged: function(evt, ui) {
-                if (suppressIdentificationSelectionChange) {
-                    evt.stopImmediatePropagation();  // stops bubbling to other handlers
-                    return;                          // skip any normal selection logic
-                }
-                isIdentificationChanged = true;
-                selectedValuesIdentification = $("#sltIdentification").igCombo("value");
-                // $("#sltIdentification").igCombo("openDropDown");
-                ui.owner.element.find("input[type='text']").val('');
-                disableMandatoryItems("#sltIdentification");
-                showHideGridColumns("#sltIdentification");
-                uncheckSelectAll("#sltIdentification"); 
-            },
-            filtered: function (evt, ui) {
-                const combo = ui.owner;
-                const text = combo.text();  
-
-                // prevent selectionChanged while we reapply
-                suppressIdentificationSelectionChange = true;
-                requestAnimationFrame(() => {                    
-                    combo.text(text); // restore input text
-                    suppressIdentificationSelectionChange = false;   // re-enable after done
-                });                
-            }
+        // Initialize all dropdowns on the page
+        $('.custom-select-wrapper').each(function() {
+            initializeCustomMultiSelect($(this));
         });
-
-        function checkIdentificationColumnsToShow() {
-            var IdentificationColumns = IdentificationCategory.map(i => i.Title);
-            var gridColumns = JSON.parse(colsToHideStr);
-            var comboColumns = IdentificationColumns.filter(i => !gridColumns.includes(i));
-            $("#sltIdentification").igCombo("value", comboColumns);
-            if (IdentificationColumns.length === comboColumns.length)
-                $("#selectAllIdentification").prop("checked", true);
-        }
-
-        // Select All for Identification
-        $(document).on("change", "#selectAllIdentification", function() {
-            var checked = $(this).is(":checked");
-            var combo = $("#sltIdentification").data("igCombo");
-            if (checked) {
-                combo.selectAll();
-                 
-            } else {
-                combo.deselectAll();
-                disableMandatoryItems("#sltIdentification");
-            }
-            showHideGridColumns("#sltIdentification");
-        });
-
-
-        let selectedValuesSource = [];
-        let isSourceChanged = false;
-        let suppressSourceSelectionChange = false;
-        //Populate Source Combobox        
-        $("#sltSource").igCombo({
-            dataSource: SourceCategory,
-            width: "250px",
-            textKey: "Title",
-            valueKey: "Title",
-            filteringType: "local",
-            filteringCondition: "contains",
-            highlightMatchesMode: "contains",
-            dropDownOrientation: "bottom",
-            dropDownOnFocus: true,
-            enableClearButton: false,
-            closeDropDownOnBlur: true,
-            autoComplete: false,
-            autoSelectFirstMatch: false,
-            allowCustomValue: true,
-            locale: {
-                placeHolder: "Select Source"
-            },
-            headerTemplate: "<div><input type='checkbox' class='igcombo-checkbox-toggle' id='selectAllSource'/><label for='selectAllSource'>Select All</label></div>",
-            multiSelection: {
-                enabled: true,
-                showCheckboxes: true,
-            },
-            itemsRendered: function (evt, ui) {
-                disableMandatoryItems("#sltSource", false);
-                checkSourceColumnsToShow();
-                ui.owner.element.find("input[type='text']").val('');
-            },
-            dropDownOpened: function (evt, ui) {
-                if (isSourceChanged)
-                    $("#sltSource").igCombo("value", selectedValuesSource);
-                else
-                    checkSourceColumnsToShow();
-
-                ui.owner.element.find("input[type='text']").val('');
-                disableMandatoryItems("#sltSource");
-                ui.owner.listScrollTop(0);
-            },
-            dropDownClosed: function (evt, ui) {
-                ui.owner.element.find("input[type='text']").val('');
-             },
-            selectionChanged: function(evt, ui) {
-                if (suppressSourceSelectionChange) {
-                    evt.stopImmediatePropagation();  // stops bubbling to other handlers
-                    return;                          // skip any normal selection logic
-                }
-                isSourceChanged = true;
-                selectedValuesSource = $("#sltSource").igCombo("value");
-                ui.owner.element.find("input[type='text']").val('');
-                showHideGridColumns("#sltSource");
-                uncheckSelectAll("#sltSource");
-                includeDisabledItem("#sltSource");
-            },
-            filtered: function (evt, ui) {
-                const combo = ui.owner;
-                const text = combo.text();
-
-                // prevent selectionChanged while we reapply
-                suppressSourceSelectionChange = true;
-                requestAnimationFrame(() => {
-                    combo.text(text); // restore input text
-                    suppressSourceSelectionChange = false;   // re-enable after done
-                });
-            }
-        });
-
-        // Select All for Source
-        $(document).on("change", "#selectAllSource", function() {
-            var checked = $(this).is(":checked");
-            var combo = $("#sltSource").data("igCombo");
-            if (checked) {
-                combo.selectAll();
-            } else {
-                combo.deselectAll();
-            }
-            showHideGridColumns("#sltSource");
-        });
-
-        function checkSourceColumnsToShow() {
-            var SourceColumns = SourceCategory.map(i => i.Title);
-            var gridColumns = JSON.parse(colsToHideStr);
-            var comboColumns = SourceColumns.filter(i => !gridColumns.includes(i));
-            $("#sltSource").igCombo("value", comboColumns);
-            if (SourceColumns.length === comboColumns.length)
-                $("#selectAllSource").prop("checked", true);
-        }
-
-
-        let selectedValuesImpact = [];
-        let isImpactChanged = false;
-        let suppressImpactSelectionChange = false;
-        //Populate Impact Combobox        
-        $("#sltImpact").igCombo({
-            dataSource: ImpactCategory,
-            width: "250px",
-            textKey: "Title",
-            valueKey: "Title",
-            filteringType: "local",
-            filteringCondition: "contains",
-            highlightMatchesMode: "contains",
-            dropDownOrientation: "bottom",
-            dropDownOnFocus: true,
-            enableClearButton: false,
-            closeDropDownOnBlur: true,
-            autoComplete: false,
-            autoSelectFirstMatch: false,
-            allowCustomValue: true,
-            locale: {
-                placeHolder: "Select Impact"
-            },
-            headerTemplate: "<div><input type='checkbox' class='igcombo-checkbox-toggle' id='selectAllImpact'/><label for='selectAllImpact'>Select All</label></div>",
-            multiSelection: {
-                enabled: true,
-                showCheckboxes: true,
-            },
-            itemsRendered: function (evt, ui) {
-                disableMandatoryItems("#sltImpact", false);
-                checkImpactColumnsToShow();
-                ui.owner.element.find("input[type='text']").val('');
-            },
-            dropDownOpened: function (evt, ui) {
-                if (isImpactChanged)
-                    $("#sltImpact").igCombo("value", selectedValuesImpact);
-                else
-                    checkImpactColumnsToShow();
-
-                ui.owner.element.find("input[type='text']").val('');
-                disableMandatoryItems("#sltImpact");
-                ui.owner.listScrollTop(0);
-            },
-            dropDownClosed: function (evt, ui) {
-                ui.owner.element.find("input[type='text']").val('');
-             },
-            selectionChanged: function(evt, ui) {
-                if (suppressImpactSelectionChange) {
-                    evt.stopImmediatePropagation();  // stops bubbling to other handlers
-                    return;                          // skip any normal selection logic
-                }
-                isImpactChanged = true;
-                selectedValuesImpact = $("#sltImpact").igCombo("value");
-                ui.owner.element.find("input[type='text']").val('');
-                showHideGridColumns("#sltImpact");
-                uncheckSelectAll("#sltImpact");
-                includeDisabledItem("#sltImpact");
-            },
-            filtered: function (evt, ui) {
-                const combo = ui.owner;
-                const text = combo.text();
-
-                // prevent selectionChanged while we reapply
-                suppressImpactSelectionChange = true;
-                requestAnimationFrame(() => {
-                    combo.text(text); // restore input text
-                    suppressImpactSelectionChange = false;   // re-enable after done
-                });
-            }
-        });
-
-        // Select All for Impact
-        $(document).on("change", "#selectAllImpact", function() {
-            var checked = $(this).is(":checked");
-            var combo = $("#sltImpact").data("igCombo");
-            if (checked) {
-                combo.selectAll();
-            } else {
-                combo.deselectAll();
-            }
-            showHideGridColumns("#sltImpact");
-        });
-
-        function checkImpactColumnsToShow() {
-            var ImpactColumns = ImpactCategory.map(i => i.Title);
-            var gridColumns = JSON.parse(colsToHideStr);
-            var comboColumns = ImpactColumns.filter(i => !gridColumns.includes(i));
-            $("#sltImpact").igCombo("value", comboColumns);
-            if (ImpactColumns.length === comboColumns.length)
-                $("#selectAllImpact").prop("checked", true);
-        }
-
-
-        let selectedValuesActions = [];
-        let isActionsChanged = false;
-        let suppressActionsSelectionChange = false;
-        //Populate Actions Combobox        
-        $("#sltActions").igCombo({
-            dataSource: ActionsCategory,
-            width: "250px",
-            textKey: "Title",
-            valueKey: "Title",
-            filteringType: "local",
-            filteringCondition: "contains",
-            highlightMatchesMode: "contains",
-            dropDownOrientation: "bottom",
-            dropDownOnFocus: true,
-            enableClearButton: false,
-            closeDropDownOnBlur: true,
-            autoComplete: false,
-            autoSelectFirstMatch: false,
-            allowCustomValue: true,
-            locale: {
-                placeHolder: "Select Actions"
-            },
-            headerTemplate: "<div><input type='checkbox' class='igcombo-checkbox-toggle' id='selectAllActions'/> <label for='selectAllActions'>Select All</label></div>",
-            multiSelection: {
-                enabled: true,
-                showCheckboxes: true,
-            },
-            itemsRendered: function (evt, ui) {
-                disableMandatoryItems("#sltActions", false);
-                checkActionsColumnsToShow();
-                ui.owner.element.find("input[type='text']").val('');
-            },
-            dropDownOpened: function (evt, ui) {
-                if (isActionsChanged)
-                    $("#sltActions").igCombo("value", selectedValuesActions);
-                else
-                    checkActionsColumnsToShow();
-
-                ui.owner.element.find("input[type='text']").val('');
-                disableMandatoryItems("#sltActions");
-                ui.owner.listScrollTop(0);
-            },
-            dropDownClosed: function (evt, ui) {
-                ui.owner.element.find("input[type='text']").val('');
-             },
-            selectionChanged: function(evt, ui) {
-                if (suppressActionsSelectionChange) {
-                    evt.stopImmediatePropagation();  // stops bubbling to other handlers
-                    return;                          // skip any normal selection logic
-                }
-                isActionsChanged = true;
-                selectedValuesActions = $("#sltActions").igCombo("value");
-                ui.owner.element.find("input[type='text']").val('');
-                showHideGridColumns("#sltActions");
-                uncheckSelectAll("#sltActions");
-                includeDisabledItem("#sltActions");
-            },
-            filtered: function (evt, ui) {
-                const combo = ui.owner;
-                const text = combo.text();
-
-                // prevent selectionChanged while we reapply
-                suppressActionsSelectionChange = true;
-                requestAnimationFrame(() => {
-                    combo.text(text); // restore input text
-                    suppressActionsSelectionChange = false;   // re-enable after done
-                });
-            }
-        });
-
-        // Select All for Actions
-        $(document).on("change", "#selectAllActions", function() {
-            var checked = $(this).is(":checked");
-            var combo = $("#sltActions").data("igCombo");
-            if (checked) {
-                combo.selectAll();
-            } else {
-                combo.deselectAll();
-            }
-            showHideGridColumns("#sltActions");
-        });
-
-        function checkActionsColumnsToShow() {
-            var ActionsColumns = ActionsCategory.map(i => i.Title);
-            var gridColumns = JSON.parse(colsToHideStr);
-            var comboColumns = ActionsColumns.filter(i => !gridColumns.includes(i));
-            $("#sltActions").igCombo("value", comboColumns);
-            if (ActionsColumns.length === comboColumns.length)
-                $("#selectAllActions").prop("checked", true);
-        }
-
-
-        let selectedValuesControls = [];
-        let isControlsChanged = false;
-        let suppressControlsSelectionChange = false;
-        //Populate Controls Combobox        
-        $("#sltControls").igCombo({
-            dataSource: ControlsCategory,
-            width: "250px",
-            textKey: "Title",
-            valueKey: "Title",
-            filteringType: "local",
-            filteringCondition: "contains",
-            highlightMatchesMode: "contains",
-            dropDownOrientation: "bottom",
-            dropDownOnFocus: true,
-            enableClearButton: false,
-            closeDropDownOnBlur: true,
-            autoComplete: false,
-            autoSelectFirstMatch: false,
-            allowCustomValue: true,
-            locale: {
-                placeHolder: "Select Controls"
-            },
-            headerTemplate: "<div><input type='checkbox' class='igcombo-checkbox-toggle' id='selectAllControls'/> <label for='selectAllControls'>Select All</label></div>",
-            multiSelection: {
-                enabled: true,
-                showCheckboxes: true,
-            },
-            itemsRendered: function (evt, ui) {
-                disableMandatoryItems("#sltControls", false);
-                checkControlsColumnsToShow();
-                ui.owner.element.find("input[type='text']").val('');
-            },
-            dropDownOpened: function (evt, ui) {
-                if (isControlsChanged)
-                    $("#sltControls").igCombo("value", selectedValuesControls);
-                else
-                    checkControlsColumnsToShow();
-
-                ui.owner.element.find("input[type='text']").val('');
-                disableMandatoryItems("#sltControls");
-                ui.owner.listScrollTop(0);
-            },
-            dropDownClosed: function (evt, ui) {
-                ui.owner.element.find("input[type='text']").val('');
-             },
-            selectionChanged: function(evt, ui) {
-                if (suppressControlsSelectionChange) {
-                    evt.stopImmediatePropagation();  // stops bubbling to other handlers
-                    return;                          // skip any normal selection logic
-                }
-                isControlsChanged = true;
-                selectedValuesControls = $("#sltControls").igCombo("value");
-                ui.owner.element.find("input[type='text']").val('');
-                showHideGridColumns("#sltControls");
-                uncheckSelectAll("#sltControls");
-                includeDisabledItem("#sltControls");
-            }
-        });
-
-        // Select All for Controls
-        $(document).on("change", "#selectAllControls", function() {
-            var checked = $(this).is(":checked");
-            var combo = $("#sltControls").data("igCombo");
-            if (checked) {
-                combo.selectAll();
-            } else {
-                combo.deselectAll();
-            }
-            showHideGridColumns("#sltControls");
-        });
-
-        function checkControlsColumnsToShow() {
-            var ControlsColumns = ControlsCategory.map(i => i.Title);
-            var gridColumns = JSON.parse(colsToHideStr);
-            var comboColumns = ControlsColumns.filter(i => !gridColumns.includes(i));
-            $("#sltControls").igCombo("value", comboColumns);
-            if (ControlsColumns.length === comboColumns.length)
-                $("#selectAllControls").prop("checked", true);
-        }
-
-
-        function showHideGridColumns(containerId) {
-            var grid = $("#grid");
-            var $container = $(containerId);
-            var selectedKeys = $container.igCombo("value");
-            var selectAllCategory = mandatoryColumns;
-            switch (containerId) {
-                case '#sltIdentification':
-                    selectAllCategory = SourceCategory.map(i => i.Title);
-                    $.merge(selectAllCategory, ImpactCategory.map(i => i.Title));
-                    $.merge(selectAllCategory, ActionsCategory.map(i => i.Title));
-                    $.merge(selectAllCategory, ControlsCategory.map(i => i.Title));
-                    break;
-                case '#sltSource':
-                    selectAllCategory = IdentificationCategory.filter(i => i.IsMandatory === false).map(i => i.Title);
-                    $.merge(selectAllCategory, ImpactCategory.map(i => i.Title));
-                    $.merge(selectAllCategory, ActionsCategory.map(i => i.Title));
-                    $.merge(selectAllCategory, ControlsCategory.map(i => i.Title));
-                    break;
-                case '#sltImpact':
-                    selectAllCategory = IdentificationCategory.filter(i => i.IsMandatory === false).map(i => i.Title);
-                    $.merge(selectAllCategory, SourceCategory.map(i => i.Title));
-                    $.merge(selectAllCategory, ActionsCategory.map(i => i.Title));
-                    $.merge(selectAllCategory, ControlsCategory.map(i => i.Title));
-                    break;
-                case '#sltActions':
-                    selectAllCategory = IdentificationCategory.filter(i => i.IsMandatory === false).map(i => i.Title);
-                    $.merge(selectAllCategory, ImpactCategory.map(i => i.Title));
-                    $.merge(selectAllCategory, SourceCategory.map(i => i.Title));
-                    $.merge(selectAllCategory, ControlsCategory.map(i => i.Title));
-                    break;
-                case '#sltControls':
-                    selectAllCategory = IdentificationCategory.filter(i => i.IsMandatory === false).map(i => i.Title);
-                    $.merge(selectAllCategory, ImpactCategory.map(i => i.Title));
-                    $.merge(selectAllCategory, ActionsCategory.map(i => i.Title));
-                    $.merge(selectAllCategory, SourceCategory.map(i => i.Title));
-                    break;
-                default:
-                    selectAllCategory = mandatoryColumns;
-            }
-
-            grid.igGrid("option", "columns").forEach(function (col) {
-                var isSelected = selectedKeys.indexOf(col.key) !== -1;
-
-                // Toggle visibility based on combo selection
-                if (isSelected) {
-                    grid.igGridHiding("showColumn", col.key);
-                } else if (!isSelected) {
-                    if (!mandatoryColumns.includes(col.key) && !selectAllCategory.includes(col.key))
-                        grid.igGridHiding("hideColumn", col.key);
-                }
-            });
-        }
-
-        function disableMandatoryItems(containerId, flag) {
-            var $container = $(containerId);
-            var combo = $container.data("igCombo");
-            var items = combo.items();
-
-            items.forEach(function (item, index) {
-                var dataItem = item.data;
-                if (dataItem.IsMandatory === true) {
-                    // Disable the checkbox
-                    combo.dropDown().find(".ui-igcombo-listitem").eq(index).addClass("igcombo-disabled-span");
-                    if (flag)
-                        combo.dropDown().find(".ui-icon").eq(index)
-                            .removeClass("ui-icon ui-igcombo-checkbox-off ui-igcheckbox-small-off").addClass("ui-icon ui-icon-check ui-igcombo-checkbox-on ui-igcheckbox-small-on");
-                }
-            });
-        }
-
-        function uncheckSelectAll(containerId) {
-            var $container = $(containerId);
-            var combo = $container.data("igCombo");
-            var specificChild = combo.dropDown().find('.ui-igcombo-listitem span');
-            if (specificChild.hasClass('ui-igcombo-checkbox-off ui-igcheckbox-small-off')) {
-                switch (containerId) {
-                    case '#sltIdentification':
-                        $("#selectAllIdentification").prop("checked", false);
-                        break;
-                    case '#sltSource':
-                        $("#selectAllSource").prop("checked", false);
-                        break;
-                    case '#sltImpact':
-                        $("#selectAllImpact").prop("checked", false);
-                        break;
-                    case '#sltActions':
-                        $("#selectAllActions").prop("checked", false);
-                        break;
-                    case '#sltControls':
-                        $("#selectAllControls").prop("checked", false);
-                        break;
-                    default:
-                        break;
-                }
-            }
-            else {
-                switch (containerId) {
-                    case '#sltIdentification':
-                        $("#selectAllIdentification").prop("checked", true);
-                        break;
-                    case '#sltSource':
-                        $("#selectAllSource").prop("checked", true);
-                        break;
-                    case '#sltImpact':
-                        $("#selectAllImpact").prop("checked", true);
-                        break;
-                    case '#sltActions':
-                        $("#selectAllActions").prop("checked", true);
-                        break;
-                    case '#sltControls':
-                        $("#selectAllControls").prop("checked", true);
-                        break;
-                    default:
-                        break;
-                }
-            }
-        }
-
-        function includeDisabledItem(containerId) {
-            var $container = $(containerId);
-            var combo = $container.igCombo("selectedItems");            
-            var comboColumns = mandatoryColumns;
-            var selectedColumns = mandatoryColumns;
-            var flag = false;
-            if (combo != null) {
-                selectedColumns = combo.filter(i => i.data.IsMandatory === false).map(i => i.data.Title);
-                if (selectedColumns.length > 0)
-                    flag = true;
-            }
-
-            switch (containerId) {
-                case '#sltSource':                    
-                    comboColumns = SourceCategory.filter(i => i.IsMandatory === true).map(i => i.Title);
-                    if (flag)
-                        $.merge(comboColumns, selectedColumns);
-                    break;
-                case '#sltImpact':
-                    comboColumns = ImpactCategory.filter(i => i.IsMandatory === true).map(i => i.Title);
-                    if (flag)
-                        $.merge(comboColumns, selectedColumns);
-                    break;
-                case '#sltActions':
-                    comboColumns = ActionsCategory.filter(i => i.IsMandatory === true).map(i => i.Title);
-                    if (flag)
-                        $.merge(comboColumns, selectedColumns);
-                    break;
-                case '#sltControls':
-                    comboColumns = ControlsCategory.filter(i => i.IsMandatory === true).map(i => i.Title);
-                    if (flag)
-                        $.merge(comboColumns, selectedColumns);
-                    break;
-                default:
-                    break;
-            }
-            var grid = $("#grid");
-            if (selectedColumns.length > 0) {
-                $container.igCombo("value", comboColumns);
-                $.each(comboColumns, function(index, value) {
-                    grid.igGridHiding("showColumn", value);
-                });
-                
-            }
-            else {
-                $container.igCombo("deselectByValue", comboColumns);
-                $.each(comboColumns, function(index, value) {
-                    grid.igGridHiding("hideColumn", value);
-                });
-            }
-            uncheckSelectAll(containerId);
-        }
 
 
         $('#txtViewName').igTextEditor({
@@ -760,11 +1057,11 @@
             var selectedItems = $('#sltView').igCombo("selectedItems");
             var sltviewname = "";
             if (selectedItems != null)
-                if (selectedItems.length > 0) 
+                if (selectedItems.length > 0)
                     sltviewname = selectedItems[0].data.ID;
-                
+
             if (sltviewname == "Default") sltviewname = null;
-            if (!sltviewname && !txtviewname) { 
+            if (!sltviewname && !txtviewname) {
                 alert("Please enter or select a viewname.");
                 e.preventDefault();
             }
@@ -900,7 +1197,7 @@
                 },
                 success: function () {
                     hideExportingIndicator(exportingIndicator);
-                },                    
+                },
             });
         });
 
@@ -923,7 +1220,7 @@
         function getDate() {
             var today = new Date();
             var dd = today.getDate();
-            var mm = today.getMonth() + 1; 
+            var mm = today.getMonth() + 1;
             var yyyy = today.getFullYear();
 
             if(dd < 10) {
@@ -938,4 +1235,4 @@
             return today;
         }
      });
-    </script>
+</script>

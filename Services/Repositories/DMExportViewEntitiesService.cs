@@ -13,8 +13,8 @@ namespace SRMDataMigrationIgnite.Services.Repositories
 {
     public class DMExportViewEntitiesService : IDMExportViewEntitiesService
     {
-        string tableName = "DMExportViewEntities";
-        string tableNameEntityColumns = "DMExportViewEntityColumns";
+        string tableName = DatabaseTables.DMExportViewEntities.GetDescription();
+        string tableNameEntityColumns = DatabaseTables.DMExportViewEntityColumns.GetDescription();
         private readonly IRepository _repository;
         private readonly ILogger<DMExportViewEntitiesService> _logger;
 
@@ -33,6 +33,7 @@ namespace SRMDataMigrationIgnite.Services.Repositories
             }
             catch (Exception ex)
             {
+                _logger.LogError("DMExportEntitiesService ViewEntities: " + ex.Message);
                 throw new Exception("Exception: " + ex.Message);
             }
         }
@@ -71,10 +72,12 @@ namespace SRMDataMigrationIgnite.Services.Repositories
                 else
                     sql = $@"{sql} ORDER BY {tableNameEntityColumns}.DisplayOrder ";
 
+                
                 dtUserColumns = await _repository.LoadDataTableAsync(sql);
             }
             catch (Exception ex)
             {
+                _logger.LogError("DMExportEntitiesService UserEntities: " + ex.Message);
                 throw new Exception("Exception: " + ex.Message);
             }
             return dtUserColumns;

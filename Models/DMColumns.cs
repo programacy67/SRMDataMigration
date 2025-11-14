@@ -12,6 +12,8 @@ namespace SRMDataMigrationIgnite.Models
         public string DisplayName { get; set; }
         public int ColumnPosition { get; set; }
         public bool IsMandatory { get; set; }
+        public bool IsReference { get; set; }
+        public string ReferenceTable { get; set; }
         public DateTime CreatedOn { get; set; }
         public DateTime? ModifiedOn { get; set; }
         public Guid? CreatedBy { get; set; }

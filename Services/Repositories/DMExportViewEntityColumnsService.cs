@@ -10,11 +10,11 @@ namespace SRMDataMigrationIgnite.Services.Repositories
 {
     public class DMExportViewEntityColumnsService : IDMExportViewEntityColumnsService
     {
-        string tableName = "DMExportViewEntityColumns";
+        string tableName = DatabaseTables.DMExportViewEntityColumns.GetDescription();
         private readonly IRepository _repository;
-        private readonly ILogger<DMExportViewEntitiesService> _logger;
+        private readonly ILogger<DMExportViewEntityColumnsService> _logger;
 
-        public DMExportViewEntityColumnsService(IRepository repository, ILogger<DMExportViewEntitiesService> logger)
+        public DMExportViewEntityColumnsService(IRepository repository, ILogger<DMExportViewEntityColumnsService> logger)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -34,6 +34,7 @@ namespace SRMDataMigrationIgnite.Services.Repositories
             }
             catch (Exception ex)
             {
+                _logger.LogError("DMExportEntityColumnsService Add: " + ex.Message);
                 throw new Exception("Exception: " + ex.Message);
             }
         }
@@ -51,6 +52,7 @@ namespace SRMDataMigrationIgnite.Services.Repositories
             }
             catch (Exception ex)
             {
+                _logger.LogError("DMExportEntityColumnsService Delete: " + ex.Message);
                 throw new Exception("Exception: " + ex.Message);
             }
         }
