@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using SRMDataMigrationIgnite.Data;
 using SRMDataMigrationIgnite.Models;
 using SRMDataMigrationIgnite.Services.Interfaces;
+using SRMDataMigrationIgnite.Services.Repositories;
 using SRMDataMigrationIgnite.Utils;
 using System.ComponentModel;
 using System.Data;
@@ -25,14 +26,17 @@ namespace SRMDataMigrationIgnite.Controllers
         private readonly IRiskRegistersService _iRiskRegistersService;
         private readonly IDMExportViewEntitiesService _iDMExportViewEntitiesService;
         private readonly IDMExportViewEntityColumnsService _iDMExportViewEntityColumnsService;
+        private readonly ILogger<ExportController> _logger;
 
         public ExportController(DataSanitizer sanitizer, IRiskRegistersService riskRegistersService, 
-                IDMExportViewEntitiesService dmExportViewEntitiesService, IDMExportViewEntityColumnsService dmExportViewEntityColumnsService)
+                IDMExportViewEntitiesService dmExportViewEntitiesService, IDMExportViewEntityColumnsService dmExportViewEntityColumnsService,
+                ILogger<ExportController> logger)
         {
             _sanitizer = sanitizer;
             _iRiskRegistersService = riskRegistersService;
             _iDMExportViewEntitiesService = dmExportViewEntitiesService;
             _iDMExportViewEntityColumnsService = dmExportViewEntityColumnsService;
+            _logger = logger;
         }
 
         [HttpGet, HttpPost]
@@ -71,10 +75,12 @@ namespace SRMDataMigrationIgnite.Controllers
 
                 //Get all saved columns if any for a particular UserId
                 ViewData["ViewName"] = viewName;
-                DataTable dtUserColumns = await _iDMExportViewEntitiesService.GetUserEntities(viewName, ApplicationDbContext.userId);
+                DataTable dtUserColumns = new DataTable();
+                if (!string.IsNullOrEmpty(viewName) || viewName != "Default")
+                    dtUserColumns = await _iDMExportViewEntitiesService.GetUserEntities(viewName, ApplicationDbContext.userId);
 
                 //Display the saved columns in its order
-                List<string?> columnsToShow = new List<string?>();
+                List<string> columnsToShow = new List<string>();
                 List<string?> columnsToHide = new List<string?>();
 
                 List<ViewEntityData> columnsToView = await _iDMExportViewEntitiesService.GetAllUserEntities(ApplicationDbContext.userId, ApplicationDbContext.cancellationToken);
@@ -93,10 +99,11 @@ namespace SRMDataMigrationIgnite.Controllers
                     //                         .Distinct().ToList();
                     //    var ColToKeep = _sanitizer.CleanDataTable(dtCategory, "");
                     //    ViewData["ColumnsToShow"] = JsonSerializer.Serialize(ColToKeep, _sanitizer.JsonOptions());
-
                     columnsToShow = (from dtc in dtCategory select dtc.Title).Distinct().ToList();
-                    ViewData["ColumnsToShow"] = JsonSerializer.Serialize(columnsToShow);
-                    ViewData["ColumnsToHide"] = JsonSerializer.Serialize(columnsToHide, _sanitizer.JsonOptions());
+                    dt.SetColumnsOrder(columnsToShow.ToArray());
+                    columnsToHide = (from dc in dt.Columns.Cast<DataColumn>() where !columnsToShow.Contains(dc.ColumnName) select (dc.ColumnName)).ToList();
+                    ViewData["ColumnsToShow"] = columnsToShow;
+                    ViewData["ColumnsToHide"] = columnsToHide;
                 }
                 if (dtUserColumns != null)
                 {
@@ -107,22 +114,22 @@ namespace SRMDataMigrationIgnite.Controllers
                             columnsToShow = dtUserColumns.AsEnumerable()
                                                 .Select(row => row.Field<string>("Title"))
                                                 .Distinct().ToList();
-                            ViewData["ColumnsToShow"] = JsonSerializer.Serialize(columnsToShow);
+                            ViewData["ColumnsToShow"] = columnsToShow;
                         }
                         
                         dt.SetColumnsOrder(columnsToShow.ToArray());
                         columnsToHide = (from dc in dt.Columns.Cast<DataColumn>() where !columnsToShow.Contains(dc.ColumnName) select (dc.ColumnName)).ToList();
-                        ViewData["ColumnsToHide"] = JsonSerializer.Serialize(columnsToHide, _sanitizer.JsonOptions());
+                        ViewData["ColumnsToHide"] = columnsToHide;
                     }
                 }
 
-                var columns = MiscellaneousService.GetColumnDefinitions(dt);
+                var columns = MiscellaneousService.GetColumnDefinitions(dt, columnsToHide, dtCategory);
                 var dataList = _sanitizer.CleanDataTable(dt, "");
                 ViewData["Columns"] = JsonSerializer.Serialize(columns, _sanitizer.JsonOptions());
                 ViewData["Data"] = JsonSerializer.Serialize(dataList, _sanitizer.JsonOptions());
 
                 //var identificationCategory = dtIdentificationCategory.AsEnumerable().Select(row => new { Title = row["Title"], IsMandatory = row["IsMandatory"] }).ToList();
-                ViewData["IdentificationCategory"] = dtIdentificationCategory;
+                ViewData["IdentificationCategory"] = dtIdentificationCategory.OrderBy(dti => columnsToShow.IndexOf(dti.Title)).ToList();
                 ViewData["SourceCategory"] = dtSourceCategory;
                 ViewData["ActionsCategory"] = dtActionsCategory;
                 ViewData["ControlsCategory"] = dtControlsCategory;
@@ -131,6 +138,7 @@ namespace SRMDataMigrationIgnite.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError("ExportController Index: " + ex.Message);
                 throw new Exception("Exception: " + ex.Message);
             }
         }
@@ -266,6 +274,7 @@ namespace SRMDataMigrationIgnite.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError("ExportController Save: " + ex.Message);
                 throw new Exception(ex.Message);
             }
             return Ok(new { message = "Saved", views = viewsList, newViewId = dmExportGuid.ToString() });
@@ -303,6 +312,7 @@ namespace SRMDataMigrationIgnite.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError("ExportController Update: " + ex.Message);
                 throw new Exception(ex.Message);
             }
             return Ok(new { message = "Saved" });
@@ -334,6 +344,7 @@ namespace SRMDataMigrationIgnite.Controllers
                 }
                 catch (Exception ex)
                 {
+                    _logger.LogError("ExportController Delete: " + ex.Message);
                     throw new Exception(ex.Message);
                 }
             }

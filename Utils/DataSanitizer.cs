@@ -73,7 +73,8 @@ namespace SRMDataMigrationIgnite.Utils
             return new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                WriteIndented = false
+                WriteIndented = false,
+                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never
             };
         }
     }

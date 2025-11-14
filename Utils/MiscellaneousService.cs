@@ -1,5 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Data;
+using static SRMDataMigrationIgnite.Services.Repositories.DMExportViewEntitiesService;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace SRMDataMigrationIgnite.Utils
 {
@@ -50,9 +52,11 @@ namespace SRMDataMigrationIgnite.Utils
             return dataTable;
         }
 
-        public static List<object> GetColumnDefinitions(DataTable dt)
+        public static List<object> GetColumnDefinitions(DataTable dt, List<string?> columnsToHide, List<ViewEntityCategoryData> columnsAndCategories)
         {
             var columns = new List<object>();
+            bool isHidden = false;
+            string categoryName = string.Empty;
             foreach (DataColumn col in dt.Columns)
             {
                 string igType = col.DataType.Name switch
@@ -66,11 +70,19 @@ namespace SRMDataMigrationIgnite.Utils
                     _ => "string"
                 };
 
+                isHidden = false;
+                if (columnsToHide != null)
+                    isHidden = (from ch in columnsToHide where ch.Equals(col.ColumnName) select ch).Any();
+
+                categoryName = (from cc in columnsAndCategories where cc.Title.Equals(col.ColumnName) select cc.CategoryTitle).FirstOrDefault();
+
                 columns.Add(new
                 {
                     headerText = col.ColumnName,
                     key = col.ColumnName,
-                    dataType = igType
+                    dataType = igType,
+                    hidden = isHidden,
+                    category = categoryName
                 });
             }
             return columns;
